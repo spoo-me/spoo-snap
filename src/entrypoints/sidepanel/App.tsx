@@ -27,11 +27,11 @@ function SidePanelContent() {
         <h1 className="text-lg font-bold tracking-tight">spoo.me</h1>
       </div>
 
-      <div className="px-2 pt-2">
+      <div className="px-4 pt-3">
         <OfflineBanner />
       </div>
 
-      <Tabs defaultValue="dashboard" className="px-2 pt-2">
+      <Tabs defaultValue="dashboard" className="px-4 pt-3 pb-6">
         <TabsList className="w-full">
           <TabsTrigger value="dashboard" className="flex-1 text-xs">
             Dashboard
@@ -57,25 +57,25 @@ function SidePanelContent() {
           )}
         </TabsList>
 
-        <TabsContent value="dashboard" className="mt-3">
+        <TabsContent value="dashboard" className="mt-4">
           <DashboardTab />
         </TabsContent>
         {isAuthenticated && (
-          <TabsContent value="urls" className="mt-3">
+          <TabsContent value="urls" className="mt-4">
             <UrlsTab />
           </TabsContent>
         )}
-        <TabsContent value="analytics" className="mt-3">
+        <TabsContent value="analytics" className="mt-4">
           <AnalyticsTab />
         </TabsContent>
-        <TabsContent value="qr" className="mt-3">
+        <TabsContent value="qr" className="mt-4">
           <QrTab />
         </TabsContent>
-        <TabsContent value="settings" className="mt-3">
+        <TabsContent value="settings" className="mt-4">
           <SettingsTab />
         </TabsContent>
         {isAuthenticated && (
-          <TabsContent value="account" className="mt-3">
+          <TabsContent value="account" className="mt-4">
             <AccountTab />
           </TabsContent>
         )}

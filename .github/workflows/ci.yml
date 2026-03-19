@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Build (Chrome)
+        run: bun run build
+
+      - name: Build (Firefox)
+        run: bun run build:firefox
+
+      - name: Check bundle size
+        run: |
+          TOTAL=$(du -sb .output/chrome-mv3/ | cut -f1)
+          TOTAL_KB=$((TOTAL / 1024))
+          echo "Total bundle size: ${TOTAL_KB}KB"
+          if [ "$TOTAL_KB" -gt 1024 ]; then
+            echo "::error::Bundle size ${TOTAL_KB}KB exceeds 1MB limit"
+            exit 1
+          fi

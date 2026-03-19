@@ -176,9 +176,9 @@ export interface DeleteUrlResponse {
 
 export interface ListUrlsQuery {
   page?: number;
-  page_size?: number;
-  sort_by?: "created_at" | "last_click" | "total_clicks";
-  sort_order?: "ascending" | "descending";
+  pageSize?: number;
+  sortBy?: "created_at" | "last_click" | "total_clicks";
+  sortOrder?: "ascending" | "descending";
   filter?: string;
 }
 
@@ -239,11 +239,11 @@ export interface StatsResponse {
   time_range: StatsTimeRange;
   summary: StatsSummary;
   metrics: Record<string, Record<string, unknown>[]>;
-  generated_at?: string;
-  api_version?: string;
-  short_code?: string;
-  time_bucket_info?: TimeBucketInfo;
-  computed_metrics?: ComputedMetrics;
+  generated_at?: string | null;
+  api_version?: string | null;
+  short_code?: string | null;
+  time_bucket_info?: TimeBucketInfo | null;
+  computed_metrics?: ComputedMetrics | null;
 }
 
 // ── API Keys ─────────────────────────────────────────────────

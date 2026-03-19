@@ -120,9 +120,9 @@ export function UrlsTab() {
 
   const { data, isLoading, error } = useUrls({
     page,
-    page_size: 15,
-    sort_by: sortBy,
-    sort_order: "descending",
+    pageSize: 15,
+    sortBy,
+    sortOrder: "descending",
     filter: search || undefined,
   });
 

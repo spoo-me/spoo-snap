@@ -153,11 +153,11 @@ export const statsResponseSchema = z.object({
   time_range: statsTimeRangeSchema,
   summary: statsSummarySchema,
   metrics: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))),
-  generated_at: z.string().optional(),
-  api_version: z.string().optional(),
-  short_code: z.string().optional(),
-  time_bucket_info: timeBucketInfoSchema.optional(),
-  computed_metrics: computedMetricsSchema.optional(),
+  generated_at: z.string().nullable().optional(),
+  api_version: z.string().nullable().optional(),
+  short_code: z.string().nullable().optional(),
+  time_bucket_info: timeBucketInfoSchema.nullable().optional(),
+  computed_metrics: computedMetricsSchema.nullable().optional(),
 });
 
 // ── API Keys ─────────────────────────────────────────────────

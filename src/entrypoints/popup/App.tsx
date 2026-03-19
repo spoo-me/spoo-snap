@@ -28,7 +28,7 @@ function PopupContent() {
   const openSidePanel = async () => {
     const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
     if (tab?.windowId != null) {
-      // sidePanel API may not have full type coverage
+      // biome-ignore lint/suspicious/noExplicitAny: sidePanel API lacks type definitions in WXT
       await (browser as any).sidePanel.open({ windowId: tab.windowId });
       window.close();
     }

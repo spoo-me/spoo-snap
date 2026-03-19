@@ -40,7 +40,11 @@ export function AccountTab() {
   );
 }
 
-function ProfileSection({ user }: { user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]> }) {
+function ProfileSection({
+  user,
+}: {
+  user: NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>;
+}) {
   const logout = useLogout();
 
   return (
