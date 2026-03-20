@@ -8,7 +8,7 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { UrlListItem } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,14 +116,34 @@ function UrlRow({ item }: { item: UrlListItem }) {
 export function UrlsTab() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"created_at" | "total_clicks" | "last_click">("created_at");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sortBy, setSortByState] = useState<"created_at" | "total_clicks" | "last_click">(() => {
+    const saved = localStorage.getItem("spoo-urls-sort");
+    return (saved as "created_at" | "total_clicks" | "last_click") || "created_at";
+  });
+  const setSortBy = (v: typeof sortBy) => {
+    setSortByState(v);
+    localStorage.setItem("spoo-urls-sort", v);
+  };
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // filter param must be JSON-encoded UrlFilter: {"search": "..."}
+  const filterParam = debouncedSearch ? JSON.stringify({ search: debouncedSearch }) : undefined;
 
   const { data, isLoading, error } = useUrls({
     page,
     pageSize: 15,
     sortBy,
     sortOrder: "descending",
-    filter: search || undefined,
+    filter: filterParam,
   });
 
   return (
@@ -134,10 +154,7 @@ export function UrlsTab() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search URLs..."
             className="h-8 pl-8 text-sm"
           />

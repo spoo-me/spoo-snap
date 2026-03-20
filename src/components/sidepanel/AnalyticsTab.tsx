@@ -280,7 +280,9 @@ function GradientAreaChartCard({
       <ChartContainer config={config} className="h-48 w-full">
         <AreaChart data={chartData}>
           <rect x="0" y="0" width="100%" height="85%" fill="url(#dots-area)" />
-          <defs><DottedBackground id="dots-area" /></defs>
+          <defs>
+            <DottedBackground id="dots-area" />
+          </defs>
           <CartesianGrid vertical={false} strokeDasharray="3 3" />
           <XAxis
             dataKey="date"
@@ -385,8 +387,16 @@ function HighlightedBarChartCard({
           margin={{ left: 0 }}
           onMouseLeave={() => setActiveIndex(null)}
         >
-          <rect x="0" y="0" width="100%" height="100%" fill={`url(#dots-bar-${title.replace(/\s/g, "")})`} />
-          <defs><DottedBackground id={`dots-bar-${title.replace(/\s/g, "")}`} /></defs>
+          <rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill={`url(#dots-bar-${title.replace(/\s/g, "")})`}
+          />
+          <defs>
+            <DottedBackground id={`dots-bar-${title.replace(/\s/g, "")}`} />
+          </defs>
           <YAxis
             type="category"
             dataKey="name"
