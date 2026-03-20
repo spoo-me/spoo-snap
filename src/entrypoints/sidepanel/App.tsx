@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { AccountTab } from "@/components/sidepanel/AccountTab";
 import { AnalyticsTab } from "@/components/sidepanel/AnalyticsTab";
 import { DashboardTab } from "@/components/sidepanel/DashboardTab";
-import { QrTab } from "@/components/sidepanel/QrTab";
 import { SettingsTab } from "@/components/sidepanel/SettingsTab";
 import { UrlsTab } from "@/components/sidepanel/UrlsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +23,19 @@ function SidePanelContent() {
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b px-4 py-3">
-        <h1 className="text-lg font-bold tracking-tight">spoo.me</h1>
+        <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <img
+            src="/icon/logo-black.png"
+            alt=""
+            className="size-5 object-contain dark:hidden"
+          />
+          <img
+            src="/icon/favicon.png"
+            alt=""
+            className="hidden size-5 object-contain dark:block"
+          />
+          spoo.me
+        </h1>
       </div>
 
       <div className="px-4 pt-3">
@@ -43,9 +54,6 @@ function SidePanelContent() {
           )}
           <TabsTrigger value="analytics" className="flex-1 text-xs">
             Analytics
-          </TabsTrigger>
-          <TabsTrigger value="qr" className="flex-1 text-xs">
-            QR
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex-1 text-xs">
             Settings
@@ -67,9 +75,6 @@ function SidePanelContent() {
         )}
         <TabsContent value="analytics" className="mt-4">
           <AnalyticsTab />
-        </TabsContent>
-        <TabsContent value="qr" className="mt-4">
-          <QrTab />
         </TabsContent>
         <TabsContent value="settings" className="mt-4">
           <SettingsTab />

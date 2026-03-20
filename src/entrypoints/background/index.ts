@@ -8,6 +8,7 @@ import {
 } from "@/lib/constants";
 import type { ExtensionMessage } from "@/lib/messaging";
 import { runMigration } from "@/lib/migration";
+import { showToastNotification } from "@/lib/notification";
 import {
   accessTokenStorage,
   authModeStorage,
@@ -100,16 +101,13 @@ async function processUrl(url: string, tabId?: number): Promise<void> {
     if (!settings.notification.stealthMode) {
       const targetTabId = tabId ?? (await getActiveTabId());
       if (targetTabId) {
-        try {
-          await browser.tabs.sendMessage(targetTabId, {
-            type: "show-notification",
-            shortUrl: result.short_url,
-            qrUrl,
-            duration: settings.notification.duration,
-          });
-        } catch {
-          // Content script might not be loaded on this tab
-        }
+        await showToastNotification(
+          targetTabId,
+          result.short_url,
+          qrUrl,
+          settings.notification.duration,
+          settings.theme,
+        );
       }
     }
   } catch (e) {
@@ -128,14 +126,13 @@ async function processOfflineQueue(): Promise<void> {
   const queue = await shortenQueueStorage.getValue();
   if (queue.length === 0) return;
 
-  // Clear queue first to avoid re-processing
   await shortenQueueStorage.setValue([]);
 
   for (const item of queue) {
     try {
       await processUrl(item.url);
     } catch {
-      // If still failing, items are lost. Could re-queue but that risks infinite loops.
+      // Items lost if still failing
     }
   }
 }
@@ -157,7 +154,6 @@ async function refreshAccessToken(): Promise<void> {
       const data = refreshResponseSchema.parse(await res.json());
       await accessTokenStorage.setValue(data.access_token);
     } else {
-      // Refresh failed — clear auth
       await accessTokenStorage.setValue(null);
       await refreshTokenStorage.setValue(null);
       await authModeStorage.setValue("anonymous");
@@ -171,9 +167,7 @@ async function refreshAccessToken(): Promise<void> {
 
 export default defineBackground(() => {
   // ── Install / Update ─────────────────────────────────────
-
   browser.runtime.onInstalled.addListener(async (details) => {
-    // Run migration from old v1 format
     if (details.reason === "update" || details.reason === "install") {
       await runMigration();
     }
@@ -195,7 +189,6 @@ export default defineBackground(() => {
   });
 
   // ── Context Menu ─────────────────────────────────────────
-
   browser.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "shorten-link" && info.linkUrl) {
       await processUrl(info.linkUrl, tab?.id);
@@ -203,16 +196,7 @@ export default defineBackground(() => {
   });
 
   // ── Message Handler ──────────────────────────────────────
-
   browser.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
-    if (message.type === "process-url") {
-      processUrl(message.url).then(
-        () => sendResponse({ success: true }),
-        (err) => sendResponse({ success: false, error: String(err) }),
-      );
-      return true; // Keep message channel open for async response
-    }
-
     if (message.type === "shorten-url") {
       shortenUrl({ long_url: message.url, alias: message.alias }).then(
         (result) => sendResponse(result),
@@ -233,15 +217,15 @@ export default defineBackground(() => {
   });
 
   // ── Omnibox ──────────────────────────────────────────────
-
   browser.omnibox.onInputEntered.addListener(async (text) => {
-    if (isAnyUrl(text)) {
-      await processUrl(text);
-    }
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    // Treat any input as a URL to shorten
+    const url = isAnyUrl(trimmed) ? trimmed : `https://${trimmed}`;
+    await processUrl(url);
   });
 
   // ── Keyboard Shortcuts ───────────────────────────────────
-
   browser.commands.onCommand.addListener(async (command) => {
     if (command === "shorten-current") {
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -252,21 +236,18 @@ export default defineBackground(() => {
   });
 
   // ── Alarms (Token Refresh) ───────────────────────────────
-
   browser.alarms.onAlarm.addListener(async (alarm) => {
     if (alarm.name === "refresh-token") {
       const mode = await authModeStorage.getValue();
       if (mode === "jwt") {
         await refreshAccessToken();
       } else {
-        // No longer in JWT mode, cancel the alarm
         browser.alarms.clear("refresh-token");
       }
     }
   });
 
   // ── Online/Offline ───────────────────────────────────────
-
   self.addEventListener("online", () => {
     processOfflineQueue();
   });

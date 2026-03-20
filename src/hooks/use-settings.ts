@@ -14,7 +14,6 @@ export function useSettings() {
     updateNotification: (patch: Partial<ExtensionSettings["notification"]>) =>
       updateSettings({ notification: { ...settings.notification, ...patch } }),
     toggleAutoCopy: () => updateSettings({ autoCopy: !settings.autoCopy }),
-    toggleAutoShorten: () => updateSettings({ autoShortenOnCopy: !settings.autoShortenOnCopy }),
     setTheme: (theme: ExtensionSettings["theme"]) => updateSettings({ theme }),
   };
 }

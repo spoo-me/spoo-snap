@@ -43,7 +43,6 @@ export const DEFAULT_SETTINGS = {
     stealthMode: false,
   },
   autoCopy: true,
-  autoShortenOnCopy: false,
   theme: "system" as const,
 } as const;
 

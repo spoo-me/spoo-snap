@@ -11,10 +11,9 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   manifest: {
-    name: "spoo.me - URL Shortener",
-    description: "Shorten URLs, generate QR codes, and manage links with spoo.me",
+    name: "spoo.me - Shorten, Share & Track",
+    description: "Shorten URLs, generate QR codes, manage links, and track analytics with spoo.me",
     permissions: [
-      "clipboardWrite",
       "storage",
       "notifications",
       "scripting",
@@ -22,11 +21,18 @@ export default defineConfig({
       "tabs",
       "contextMenus",
       "sidePanel",
+      "alarms",
     ],
     host_permissions: ["https://spoo.me/*", "https://qr.spoo.me/*"],
+    web_accessible_resources: [
+      {
+        resources: ["icon/*"],
+        matches: ["<all_urls>"],
+      },
+    ],
     commands: {
       "shorten-current": {
-        suggested_key: { default: "Alt+Shift+S" },
+        suggested_key: { default: "Alt+Shift+S", mac: "MacCtrl+Shift+S" },
         description: "Shorten the current page URL",
       },
     },

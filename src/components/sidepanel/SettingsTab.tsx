@@ -4,14 +4,7 @@ import { useSettings } from "@/hooks/use-settings";
 import type { ExtensionSettings } from "@/schemas/settings";
 
 export function SettingsTab() {
-  const {
-    settings,
-    updateSettings,
-    updateNotification,
-    toggleAutoCopy,
-    toggleAutoShorten,
-    setTheme,
-  } = useSettings();
+  const { settings, updateSettings, updateNotification, toggleAutoCopy, setTheme } = useSettings();
 
   return (
     <div className="space-y-5">
@@ -40,12 +33,6 @@ export function SettingsTab() {
           description="Copy to clipboard after shortening"
           checked={settings.autoCopy}
           onChange={toggleAutoCopy}
-        />
-        <ToggleRow
-          label="Auto-shorten on copy"
-          description="Shorten URLs when you copy them on any page (opt-in)"
-          checked={settings.autoShortenOnCopy}
-          onChange={toggleAutoShorten}
         />
       </SettingsSection>
 

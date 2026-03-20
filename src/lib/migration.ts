@@ -47,7 +47,6 @@ function migrateSettings(old: Record<string, unknown>): ExtensionSettings {
       stealthMode: v1.stealthMode ?? false,
     },
     autoCopy: v1.autoCopy ?? true,
-    autoShortenOnCopy: false, // Opt-in only in v2
     theme: v1.theme === "dark" ? "dark" : v1.theme === "light" ? "light" : "system",
   };
 }

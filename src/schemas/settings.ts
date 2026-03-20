@@ -34,7 +34,6 @@ export const extensionSettingsSchema = z.object({
     stealthMode: z.boolean(),
   }),
   autoCopy: z.boolean(),
-  autoShortenOnCopy: z.boolean(),
   theme: z.enum(["light", "dark", "system"]),
 });
 
