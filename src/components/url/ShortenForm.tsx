@@ -31,12 +31,12 @@ export function ShortenForm() {
           value={url}
           onChange={(e) => {
             setUrl(e.target.value);
-            // Reset result when input changes
             if (shorten.data) shorten.reset();
           }}
           placeholder="Paste a URL to shorten..."
           className="h-9 text-sm"
           type="url"
+          autoFocus
         />
         <Button type="submit" size="sm" className="h-9" disabled={shorten.isPending || !url.trim()}>
           {shorten.isPending ? (

@@ -30,26 +30,26 @@ export function AnalyticsTab() {
   const { mode } = useAuthStore();
   const isAuthenticated = mode !== "anonymous";
 
+  if (!isAuthenticated) {
+    return <UrlAnalytics />;
+  }
+
   return (
-    <Tabs defaultValue={isAuthenticated ? "account" : "url"}>
+    <Tabs defaultValue="account">
       <TabsList className="w-full">
-        {isAuthenticated && (
-          <TabsTrigger value="account" className="flex-1 text-xs">
-            <TrendingUp className="size-3 mr-1" />
-            Account
-          </TabsTrigger>
-        )}
+        <TabsTrigger value="account" className="flex-1 text-xs">
+          <TrendingUp className="size-3 mr-1" />
+          Account
+        </TabsTrigger>
         <TabsTrigger value="url" className="flex-1 text-xs">
           <Search className="size-3 mr-1" />
           URL Lookup
         </TabsTrigger>
       </TabsList>
 
-      {isAuthenticated && (
-        <TabsContent value="account" className="mt-3">
-          <AccountAnalytics />
-        </TabsContent>
-      )}
+      <TabsContent value="account" className="mt-3">
+        <AccountAnalytics />
+      </TabsContent>
       <TabsContent value="url" className="mt-3">
         <UrlAnalytics />
       </TabsContent>
@@ -105,7 +105,7 @@ function UrlAnalytics() {
           placeholder="Short code or URL (e.g. abc123)"
           className="h-8 text-sm"
         />
-        <Button type="submit" size="sm" disabled={!shortCode.trim()}>
+        <Button type="submit" size="sm" className="h-8" disabled={!shortCode.trim()}>
           <BarChart3 className="size-3.5" />
         </Button>
       </form>

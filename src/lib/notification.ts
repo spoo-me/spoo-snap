@@ -246,13 +246,17 @@ function injectToastNotification(
         width: 100px;
         height: 100px;
         border-radius: 6px;
-        background: #f4f4f5;
-        animation: spoo-pulse 1.5s ease-in-out infinite;
+        background: linear-gradient(90deg, #e4e4e7 25%, #f4f4f5 50%, #e4e4e7 75%);
+        background-size: 200% 100%;
+        animation: spoo-shimmer 1.5s ease-in-out infinite;
       }
-      .dark .qr-skeleton { background: #e4e4e7; }
-      @keyframes spoo-pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+      .dark .qr-skeleton {
+        background: linear-gradient(90deg, #d4d4d8 25%, #e4e4e7 50%, #d4d4d8 75%);
+        background-size: 200% 100%;
+      }
+      @keyframes spoo-shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
       }
       .qr {
         width: 100px;

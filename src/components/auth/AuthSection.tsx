@@ -1,128 +1,86 @@
-import { Key, LogIn, LogOut } from "lucide-react";
+import { Key, LogIn } from "lucide-react";
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useLogin, useLogout } from "@/hooks/use-auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLogin } from "@/hooks/use-auth";
 import { useAuthStore } from "@/stores/auth";
 
-type AuthView = "status" | "login" | "apikey";
-
+/**
+ * Single "Sign in" button that opens a dialog with Email and API Key tabs.
+ * Only renders for anonymous users.
+ */
 export function AuthSection() {
-  const { mode, user } = useAuthStore();
-  const [view, setView] = useState<AuthView>("status");
+  const { mode } = useAuthStore();
+  const [open, setOpen] = useState(false);
 
-  if (view === "login") return <LoginForm onBack={() => setView("status")} />;
-  if (view === "apikey") return <ApiKeyForm onBack={() => setView("status")} />;
+  if (mode !== "anonymous") return null;
 
-  // Anonymous
-  if (mode === "anonymous") {
-    return (
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">Sign in for URL management & analytics</p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => setView("login")}>
-            <LogIn className="size-3.5" data-icon="inline-start" />
-            Sign in
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => setView("apikey")}>
-            <Key className="size-3.5" data-icon="inline-start" />
-            API Key
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // API Key mode
-  if (mode === "apikey") {
-    return <AuthenticatedBadge label="API Key" onSignOut={() => setView("status")} />;
-  }
-
-  // JWT mode
   return (
-    <AuthenticatedUser
-      name={user?.user_name ?? user?.email ?? "User"}
-      avatarUrl={user?.pfp?.url ?? undefined}
-    />
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 text-xs">
+          <LogIn className="size-3" />
+          Sign in
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xs">
+        <DialogHeader>
+          <DialogTitle>Sign in to spoo.me</DialogTitle>
+          <DialogDescription>Manage URLs, view analytics, and more</DialogDescription>
+        </DialogHeader>
+        <Tabs defaultValue="email">
+          <TabsList className="w-full">
+            <TabsTrigger value="email" className="flex-1 text-xs">
+              <LogIn className="size-3 mr-1" />
+              Email
+            </TabsTrigger>
+            <TabsTrigger value="apikey" className="flex-1 text-xs">
+              <Key className="size-3 mr-1" />
+              API Key
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="email" className="mt-3">
+            <LoginForm onSuccess={() => setOpen(false)} />
+          </TabsContent>
+          <TabsContent value="apikey" className="mt-3">
+            <ApiKeyForm onSuccess={() => setOpen(false)} />
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function AuthenticatedUser({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
-  const logout = useLogout();
-
-  return (
-    <div className="flex items-center gap-2">
-      <Avatar className="size-6">
-        <AvatarImage src={avatarUrl} />
-        <AvatarFallback className="text-[10px]">{name.charAt(0).toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <span className="flex-1 truncate text-sm font-medium">{name}</span>
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={() => logout.mutate()}
-        disabled={logout.isPending}
-        title="Sign out"
-      >
-        <LogOut className="size-3.5" />
-      </Button>
-    </div>
-  );
-}
-
-function AuthenticatedBadge({ label, onSignOut }: { label: string; onSignOut: () => void }) {
-  const { clearAuth } = useAuthStore();
-
-  return (
-    <div className="flex items-center gap-2">
-      <Badge variant="secondary" className="text-xs">
-        <Key className="size-3 mr-1" />
-        {label}
-      </Badge>
-      <span className="flex-1" />
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        onClick={async () => {
-          await clearAuth();
-          onSignOut();
-        }}
-        title="Disconnect"
-      >
-        <LogOut className="size-3.5" />
-      </Button>
-    </div>
-  );
-}
-
-function LoginForm({ onBack }: { onBack: () => void }) {
+function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const login = useLogin();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login.mutate({ email, password });
+    login.mutate({ email, password }, { onSuccess });
   };
-
-  // Auto-switch back to status view on success
-  if (login.isSuccess) {
-    onBack();
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="space-y-2">
         <div className="space-y-1">
-          <Label htmlFor="email" className="text-xs">
+          <Label htmlFor="login-email" className="text-xs">
             Email
           </Label>
           <Input
-            id="email"
+            id="login-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -132,11 +90,11 @@ function LoginForm({ onBack }: { onBack: () => void }) {
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="password" className="text-xs">
+          <Label htmlFor="login-password" className="text-xs">
             Password
           </Label>
           <Input
-            id="password"
+            id="login-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -147,14 +105,9 @@ function LoginForm({ onBack }: { onBack: () => void }) {
         </div>
       </div>
       {login.error && <p className="text-xs text-destructive">{login.error.message}</p>}
-      <div className="flex gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-          Back
-        </Button>
-        <Button type="submit" size="sm" className="flex-1" disabled={login.isPending}>
-          {login.isPending ? "Signing in..." : "Sign in"}
-        </Button>
-      </div>
+      <Button type="submit" size="sm" className="w-full" disabled={login.isPending}>
+        {login.isPending ? "Signing in..." : "Sign in"}
+      </Button>
       <Separator />
       <p className="text-[11px] text-center text-muted-foreground">
         Don't have an account?{" "}
@@ -171,7 +124,7 @@ function LoginForm({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ApiKeyForm({ onBack }: { onBack: () => void }) {
+function ApiKeyForm({ onSuccess }: { onSuccess: () => void }) {
   const [key, setKey] = useState("");
   const { setApiKeyAuth } = useAuthStore();
   const [error, setError] = useState("");
@@ -184,17 +137,17 @@ function ApiKeyForm({ onBack }: { onBack: () => void }) {
       return;
     }
     await setApiKeyAuth(trimmed);
-    onBack();
+    onSuccess();
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="space-y-1">
-        <Label htmlFor="apikey" className="text-xs">
+        <Label htmlFor="dialog-apikey" className="text-xs">
           API Key
         </Label>
         <Input
-          id="apikey"
+          id="dialog-apikey"
           type="password"
           value={key}
           onChange={(e) => {
@@ -207,14 +160,9 @@ function ApiKeyForm({ onBack }: { onBack: () => void }) {
         />
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
-      <div className="flex gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-          Back
-        </Button>
-        <Button type="submit" size="sm" className="flex-1" disabled={!key.trim()}>
-          Connect
-        </Button>
-      </div>
+      <Button type="submit" size="sm" className="w-full" disabled={!key.trim()}>
+        Connect
+      </Button>
       <p className="text-[11px] text-muted-foreground">
         Get an API key from{" "}
         <a

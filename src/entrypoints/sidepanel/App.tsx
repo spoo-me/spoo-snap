@@ -1,8 +1,9 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { AuthSection } from "@/components/auth/AuthSection";
+import { UserMenu } from "@/components/auth/UserMenu";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
-import { AccountTab } from "@/components/sidepanel/AccountTab";
 import { AnalyticsTab } from "@/components/sidepanel/AnalyticsTab";
 import { DashboardTab } from "@/components/sidepanel/DashboardTab";
 import { SettingsTab } from "@/components/sidepanel/SettingsTab";
@@ -22,12 +23,16 @@ function SidePanelContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b px-4 py-3">
+      <div className="flex items-center justify-between border-b px-4 py-3">
         <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight">
           <img src="/icon/logo-black.png" alt="" className="size-5 object-contain dark:hidden" />
           <img src="/icon/favicon.png" alt="" className="hidden size-5 object-contain dark:block" />
           spoo.me
         </h1>
+        <div className="flex items-center gap-2">
+          {!isAuthenticated && <AuthSection />}
+          <UserMenu size="md" />
+        </div>
       </div>
 
       <div className="px-4 pt-3">
@@ -50,32 +55,34 @@ function SidePanelContent() {
           <TabsTrigger value="settings" className="flex-1 text-xs">
             Settings
           </TabsTrigger>
-          {isAuthenticated && (
-            <TabsTrigger value="account" className="flex-1 text-xs">
-              Account
-            </TabsTrigger>
-          )}
         </TabsList>
 
-        <TabsContent value="dashboard" className="mt-4">
+        <TabsContent
+          value="dashboard"
+          className="mt-4 animate-in fade-in slide-in-from-bottom-1 duration-200"
+        >
           <DashboardTab />
         </TabsContent>
         {isAuthenticated && (
-          <TabsContent value="urls" className="mt-4">
+          <TabsContent
+            value="urls"
+            className="mt-4 animate-in fade-in slide-in-from-bottom-1 duration-200"
+          >
             <UrlsTab />
           </TabsContent>
         )}
-        <TabsContent value="analytics" className="mt-4">
+        <TabsContent
+          value="analytics"
+          className="mt-4 animate-in fade-in slide-in-from-bottom-1 duration-200"
+        >
           <AnalyticsTab />
         </TabsContent>
-        <TabsContent value="settings" className="mt-4">
+        <TabsContent
+          value="settings"
+          className="mt-4 animate-in fade-in slide-in-from-bottom-1 duration-200"
+        >
           <SettingsTab />
         </TabsContent>
-        {isAuthenticated && (
-          <TabsContent value="account" className="mt-4">
-            <AccountTab />
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );
