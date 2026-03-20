@@ -39,16 +39,8 @@ function PopupContent() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          <img
-            src="/icon/logo-black.png"
-            alt=""
-            className="size-4 object-contain dark:hidden"
-          />
-          <img
-            src="/icon/favicon.png"
-            alt=""
-            className="hidden size-4 object-contain dark:block"
-          />
+          <img src="/icon/logo-black.png" alt="" className="size-4 object-contain dark:hidden" />
+          <img src="/icon/favicon.png" alt="" className="hidden size-4 object-contain dark:block" />
           <span className="text-base font-bold tracking-tight">spoo.me</span>
         </div>
         <div className="flex items-center gap-1">

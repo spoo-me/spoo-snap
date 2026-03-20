@@ -1,5 +1,14 @@
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/hooks/use-settings";
 import type { ExtensionSettings } from "@/schemas/settings";
 
@@ -12,15 +21,19 @@ export function SettingsTab() {
       <SettingsSection title="Appearance">
         <div className="space-y-1">
           <Label className="text-xs">Theme</Label>
-          <select
+          <Select
             value={settings.theme}
-            onChange={(e) => setTheme(e.target.value as ExtensionSettings["theme"])}
-            className="h-8 w-full rounded-md border bg-background px-2 text-xs"
+            onValueChange={(v) => setTheme(v as ExtensionSettings["theme"])}
           >
-            <option value="system">System</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
+            <SelectTrigger className="h-8 w-full text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="system">System</SelectItem>
+              <SelectItem value="light">Light</SelectItem>
+              <SelectItem value="dark">Dark</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </SettingsSection>
 
@@ -46,15 +59,14 @@ export function SettingsTab() {
           checked={settings.notification.stealthMode}
           onChange={() => updateNotification({ stealthMode: !settings.notification.stealthMode })}
         />
-        <div className="space-y-1">
+        <div className="space-y-2">
           <Label className="text-xs">Auto-hide duration: {settings.notification.duration}s</Label>
-          <input
-            type="range"
+          <Slider
             min={1}
             max={60}
-            value={settings.notification.duration}
-            onChange={(e) => updateNotification({ duration: Number(e.target.value) })}
-            className="w-full accent-primary"
+            step={1}
+            value={[settings.notification.duration]}
+            onValueChange={([v]) => updateNotification({ duration: v })}
           />
           <div className="flex justify-between text-[10px] text-muted-foreground">
             <span>1s</span>
@@ -111,17 +123,12 @@ function ToggleRow({
   onChange: () => void;
 }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="mt-0.5 size-4 rounded border accent-primary"
-      />
+    <div className="flex items-center justify-between gap-3">
       <div>
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-    </label>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
   );
 }

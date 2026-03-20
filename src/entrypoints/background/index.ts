@@ -220,7 +220,6 @@ export default defineBackground(() => {
   browser.omnibox.onInputEntered.addListener(async (text) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    // Treat any input as a URL to shorten
     const url = isAnyUrl(trimmed) ? trimmed : `https://${trimmed}`;
     await processUrl(url);
   });

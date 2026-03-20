@@ -24,16 +24,8 @@ function SidePanelContent() {
     <div className="min-h-screen bg-background">
       <div className="border-b px-4 py-3">
         <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <img
-            src="/icon/logo-black.png"
-            alt=""
-            className="size-5 object-contain dark:hidden"
-          />
-          <img
-            src="/icon/favicon.png"
-            alt=""
-            className="hidden size-5 object-contain dark:block"
-          />
+          <img src="/icon/logo-black.png" alt="" className="size-5 object-contain dark:hidden" />
+          <img src="/icon/favicon.png" alt="" className="hidden size-5 object-contain dark:block" />
           spoo.me
         </h1>
       </div>

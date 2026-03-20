@@ -38,7 +38,7 @@ export function ShortenForm() {
           className="h-9 text-sm"
           type="url"
         />
-        <Button type="submit" size="sm" disabled={shorten.isPending || !url.trim()}>
+        <Button type="submit" size="sm" className="h-9" disabled={shorten.isPending || !url.trim()}>
           {shorten.isPending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (

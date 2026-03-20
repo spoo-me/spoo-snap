@@ -4,15 +4,34 @@ import {
   ChevronRight,
   Copy,
   ExternalLink,
+  Play,
   Power,
   Search,
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { UrlListItem } from "@/api/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDeleteUrl, useUpdateUrlStatus, useUrls } from "@/hooks/use-urls";
 
 function UrlRow({ item }: { item: UrlListItem }) {
@@ -33,34 +52,27 @@ function UrlRow({ item }: { item: UrlListItem }) {
     toggleStatus.mutate({ urlId: item.id, data: { status: newStatus } });
   };
 
-  const handleDelete = () => {
-    if (confirm("Delete this URL? This cannot be undone.")) {
-      deleteUrl.mutate(item.id);
-    }
-  };
+  const handleDelete = () => deleteUrl.mutate(item.id);
 
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <a
-              href={shortUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-primary hover:underline truncate"
-            >
-              spoo.me/{item.alias}
-            </a>
-            <Badge
-              variant={item.status === "ACTIVE" ? "default" : "secondary"}
-              className="text-[10px] px-1.5 py-0"
-            >
-              {item.status}
-            </Badge>
-          </div>
+          <a
+            href={shortUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-primary hover:underline truncate block"
+          >
+            spoo.me/{item.alias}
+          </a>
           <p className="text-xs text-muted-foreground truncate mt-0.5">{item.long_url}</p>
         </div>
+        {item.status !== "ACTIVE" && (
+          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0">
+            {item.status}
+          </Badge>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
@@ -86,7 +98,7 @@ function UrlRow({ item }: { item: UrlListItem }) {
             title={item.status === "ACTIVE" ? "Deactivate" : "Activate"}
             disabled={toggleStatus.isPending}
           >
-            <Power className="size-3" />
+            {item.status === "ACTIVE" ? <Power className="size-3" /> : <Play className="size-3" />}
           </Button>
           <Button variant="ghost" size="icon-xs" asChild title="Analytics">
             <a
@@ -97,16 +109,32 @@ function UrlRow({ item }: { item: UrlListItem }) {
               <ExternalLink className="size-3" />
             </a>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={handleDelete}
-            title="Delete"
-            disabled={deleteUrl.isPending}
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="size-3" />
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                title="Delete"
+                disabled={deleteUrl.isPending}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="size-3" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete URL</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete <strong>spoo.me/{item.alias}</strong>. This cannot be
+                  undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
@@ -159,15 +187,16 @@ export function UrlsTab() {
             className="h-8 pl-8 text-sm"
           />
         </div>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="h-8 rounded-md border bg-background px-2 text-xs"
-        >
-          <option value="created_at">Newest</option>
-          <option value="total_clicks">Most clicks</option>
-          <option value="last_click">Last clicked</option>
-        </select>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+          <SelectTrigger className="h-8 w-[130px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="created_at">Newest</SelectItem>
+            <SelectItem value="total_clicks">Most clicks</SelectItem>
+            <SelectItem value="last_click">Last clicked</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* List */}

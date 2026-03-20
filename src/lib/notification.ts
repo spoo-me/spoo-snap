@@ -17,23 +17,37 @@ export async function showToastNotification(
   duration: number,
   theme: "light" | "dark" | "system",
 ): Promise<void> {
-  const logoLightUrl = browser.runtime.getURL("/icon/logo-black.png");
-  const logoDarkUrl = browser.runtime.getURL("/icon/favicon.png");
+  // Only inject into http/https pages — chrome://, edge://, about: etc. silently swallow injections
+  let canInject = false;
   try {
-    await browser.scripting.executeScript({
-      target: { tabId },
-      func: injectToastNotification,
-      args: [shortUrl, qrUrl, duration, logoLightUrl, logoDarkUrl, theme],
-    });
+    const tab = await browser.tabs.get(tabId);
+    const url = tab.url ?? "";
+    canInject = url.startsWith("http://") || url.startsWith("https://");
   } catch {
-    // Tab not scriptable (chrome://, edge://, etc.) — fall back to browser notification
-    browser.notifications.create({
-      type: "basic",
-      iconUrl: browser.runtime.getURL("/icon/128.png"),
-      title: "URL Shortened!",
-      message: shortUrl,
-    });
+    // Tab doesn't exist
   }
+
+  if (canInject) {
+    const logoLightUrl = browser.runtime.getURL("/icon/logo-black.png");
+    const logoDarkUrl = browser.runtime.getURL("/icon/favicon.png");
+    try {
+      await browser.scripting.executeScript({
+        target: { tabId },
+        func: injectToastNotification,
+        args: [shortUrl, qrUrl, duration, logoLightUrl, logoDarkUrl, theme],
+      });
+      return;
+    } catch {
+      // Injection failed — fall through to browser notification
+    }
+  }
+
+  await browser.notifications.create(`spoo-${Date.now()}`, {
+    type: "basic",
+    iconUrl: browser.runtime.getURL("/icon/128.png"),
+    title: "URL Shortened!",
+    message: shortUrl,
+  });
 }
 
 /**

@@ -485,6 +485,16 @@ function RoundedPieChartCard({
         className="[&_.recharts-text]:fill-background mx-auto aspect-square max-h-[200px]"
       >
         <PieChart>
+          <rect
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            fill={`url(#dots-pie-${title.replace(/\s/g, "")})`}
+          />
+          <defs>
+            <DottedBackground id={`dots-pie-${title.replace(/\s/g, "")}`} />
+          </defs>
           <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
           <Pie
             data={chartData}
