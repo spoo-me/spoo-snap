@@ -15,10 +15,7 @@ export interface DeviceAuthCodeMessage {
   code: string;
 }
 
-export type ExtensionMessage =
-  | ShortenUrlMessage
-  | GetAuthStateMessage
-  | DeviceAuthCodeMessage;
+export type ExtensionMessage = ShortenUrlMessage | GetAuthStateMessage | DeviceAuthCodeMessage;
 
 /**
  * Send a typed message to the background service worker.

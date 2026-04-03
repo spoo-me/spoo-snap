@@ -3,6 +3,7 @@ import { classicQrUrl, gradientQrUrl } from "@/api/qr";
 import { shortenUrl } from "@/api/shorten";
 import {
   ACCESS_TOKEN_TTL_MS,
+  API_BASE_URL,
   AUTH_ENDPOINTS,
   HISTORY_MAX_ITEMS,
   TOKEN_REFRESH_BUFFER_MS,
@@ -19,7 +20,6 @@ import {
   shortenQueueStorage,
   userProfileStorage,
 } from "@/lib/storage";
-import { API_BASE_URL } from "@/lib/constants";
 import { isAnyUrl, normalizeUrl } from "@/lib/url-utils";
 import { deviceTokenResponseSchema } from "@/schemas/api";
 import type { HistoryItem } from "@/schemas/settings";
