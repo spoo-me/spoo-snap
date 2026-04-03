@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -100,7 +101,7 @@ export function SettingsTab() {
   );
 }
 
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="space-y-3">
       <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

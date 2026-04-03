@@ -33,7 +33,7 @@ export default defineConfig({
     web_accessible_resources: [
       {
         resources: ["icon/*"],
-        matches: ["<all_urls>"],
+        matches: ["http://*/*", "https://*/*"],
       },
     ],
     commands: {

@@ -1,5 +1,5 @@
 import { BarChart3, Search, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -90,7 +90,7 @@ function UrlAnalytics() {
     !!activeCode,
   );
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     const code = shortCode.trim().replace(/^https?:\/\/spoo\.me\//, "");
     if (code) setActiveCode(code);

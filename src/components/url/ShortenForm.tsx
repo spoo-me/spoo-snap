@@ -1,5 +1,5 @@
 import { Check, Copy, Link, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useShortenMutation } from "@/hooks/use-shorten";
@@ -10,7 +10,7 @@ export function ShortenForm() {
   const [copied, setCopied] = useState(false);
   const shorten = useShortenMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const trimmed = url.trim();
     if (!isAnyUrl(trimmed)) return;

@@ -1,11 +1,11 @@
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settings";
 
 /**
  * Applies the theme class to the document root.
  * Must be rendered in every UI entrypoint (popup, sidepanel).
  */
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const { settings } = useSettingsStore();
   const theme = settings.theme;
 

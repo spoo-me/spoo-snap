@@ -1,7 +1,10 @@
 import { deviceAuthStateStorage } from "@/lib/storage";
 
 export default defineContentScript({
-  matches: ["https://spoo.me/*", "http://127.0.0.1/*", "http://localhost/*"],
+  matches: [
+    "https://spoo.me/*",
+    ...(import.meta.env.DEV ? ["http://127.0.0.1/*", "http://localhost/*"] : []),
+  ],
   runAt: "document_idle",
   async main() {
     if (!window.location.pathname.startsWith("/auth/device/callback")) return;
@@ -16,11 +19,15 @@ export default defineContentScript({
     const pageState = el.dataset.state;
     const storedState = await deviceAuthStateStorage.getValue();
 
-    if (!pageState || !storedState || pageState !== storedState) return;
+    if (!pageState || !storedState || pageState !== storedState) {
+      await deviceAuthStateStorage.setValue(null);
+      return;
+    }
 
-    // Clear the state — one-time use
-    await deviceAuthStateStorage.setValue(null);
-
-    browser.runtime.sendMessage({ type: "device-auth-code", code });
+    // Exchange the code — only clear state on success so user can retry on failure
+    const response = await browser.runtime.sendMessage({ type: "device-auth-code", code });
+    if (response?.success) {
+      await deviceAuthStateStorage.setValue(null);
+    }
   },
 });

@@ -1,3 +1,4 @@
+import { refreshAccessToken } from "@/api/auth";
 import { classicQrUrl, gradientQrUrl } from "@/api/qr";
 import { shortenUrl } from "@/api/shorten";
 import {
@@ -18,8 +19,9 @@ import {
   shortenQueueStorage,
   userProfileStorage,
 } from "@/lib/storage";
+import { API_BASE_URL } from "@/lib/constants";
 import { isAnyUrl, normalizeUrl } from "@/lib/url-utils";
-import { deviceTokenResponseSchema, refreshResponseSchema } from "@/schemas/api";
+import { deviceTokenResponseSchema } from "@/schemas/api";
 import type { HistoryItem } from "@/schemas/settings";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -138,29 +140,16 @@ async function processOfflineQueue(): Promise<void> {
   }
 }
 
-async function refreshAccessToken(): Promise<void> {
-  const refreshToken = await refreshTokenStorage.getValue();
-  if (!refreshToken) return;
-
-  try {
-    const res = await fetch(AUTH_ENDPOINTS.refresh, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${refreshToken}`,
-      },
-    });
-
-    if (res.ok) {
-      const data = refreshResponseSchema.parse(await res.json());
-      await accessTokenStorage.setValue(data.access_token);
-    } else {
+async function handleTokenRefresh(): Promise<void> {
+  const refreshed = await refreshAccessToken();
+  if (!refreshed) {
+    // Token expired or invalid — clean up and go anonymous
+    const hasRefresh = await refreshTokenStorage.getValue();
+    if (hasRefresh) {
       await accessTokenStorage.setValue(null);
       await refreshTokenStorage.setValue(null);
       await authModeStorage.setValue("anonymous");
     }
-  } catch {
-    // Network error — will retry on next alarm
   }
 }
 
@@ -239,6 +228,12 @@ export default defineBackground(() => {
     }
 
     if (message.type === "device-auth-code") {
+      // Only accept device auth codes from our own content scripts
+      const senderUrl = sender.url ?? "";
+      if (!senderUrl.startsWith(API_BASE_URL)) {
+        sendResponse({ error: "unauthorized sender" });
+        return true;
+      }
       exchangeDeviceCode(message.code).then(
         () => {
           sendResponse({ success: true });
@@ -274,9 +269,10 @@ export default defineBackground(() => {
   // ── Alarms (Token Refresh) ───────────────────────────────
   browser.alarms.onAlarm.addListener(async (alarm) => {
     if (alarm.name === "refresh-token") {
+      await processOfflineQueue();
       const mode = await authModeStorage.getValue();
       if (mode === "jwt") {
-        await refreshAccessToken();
+        await handleTokenRefresh();
       } else {
         browser.alarms.clear("refresh-token");
       }

@@ -1,14 +1,9 @@
-export type MessageType = "shorten-url" | "auth-changed" | "get-auth-state" | "device-auth-code";
+export type MessageType = "shorten-url" | "get-auth-state" | "device-auth-code";
 
 export interface ShortenUrlMessage {
   type: "shorten-url";
   url: string;
   alias?: string;
-}
-
-export interface AuthChangedMessage {
-  type: "auth-changed";
-  mode: "jwt" | "apikey" | "anonymous";
 }
 
 export interface GetAuthStateMessage {
@@ -22,7 +17,6 @@ export interface DeviceAuthCodeMessage {
 
 export type ExtensionMessage =
   | ShortenUrlMessage
-  | AuthChangedMessage
   | GetAuthStateMessage
   | DeviceAuthCodeMessage;
 

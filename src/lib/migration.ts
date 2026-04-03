@@ -95,9 +95,8 @@ export async function runMigration(): Promise<void> {
 
     // Clean up old keys
     await browser.storage.local.remove(["settings", "history"]);
+    await migratedStorage.setValue(true);
   } catch (e) {
     console.error("Migration failed:", e);
   }
-
-  await migratedStorage.setValue(true);
 }

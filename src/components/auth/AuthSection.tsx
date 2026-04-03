@@ -1,5 +1,5 @@
 import { ExternalLink, Key, LogIn } from "lucide-react";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -66,8 +66,12 @@ function WebLoginForm({ onSuccess }: { onSuccess: () => void }) {
   const handleWebLogin = async () => {
     const state = crypto.randomUUID();
     await deviceAuthStateStorage.setValue(state);
-    browser.tabs.create({ url: `${AUTH_ENDPOINTS.deviceLogin}?state=${state}` });
-    onSuccess();
+    try {
+      await browser.tabs.create({ url: `${AUTH_ENDPOINTS.deviceLogin}?state=${state}` });
+      onSuccess();
+    } catch {
+      await deviceAuthStateStorage.setValue(null);
+    }
   };
 
   return (
@@ -90,16 +94,24 @@ function ApiKeyForm({ onSuccess }: { onSuccess: () => void }) {
   const [key, setKey] = useState("");
   const { setApiKeyAuth } = useAuthStore();
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = key.trim();
     if (!trimmed.startsWith("spoo_")) {
       setError("API key must start with 'spoo_'");
       return;
     }
-    await setApiKeyAuth(trimmed);
-    onSuccess();
+    setPending(true);
+    try {
+      await setApiKeyAuth(trimmed);
+      onSuccess();
+    } catch {
+      setError("Failed to connect — check your API key and try again");
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -122,8 +134,8 @@ function ApiKeyForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
-      <Button type="submit" size="sm" className="w-full" disabled={!key.trim()}>
-        Connect
+      <Button type="submit" size="sm" className="w-full" disabled={!key.trim() || pending}>
+        {pending ? "Connecting..." : "Connect"}
       </Button>
       <p className="text-[11px] text-muted-foreground">
         Get an API key from{" "}

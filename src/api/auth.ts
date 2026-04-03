@@ -14,10 +14,12 @@ import type {
   VerifyEmailResponse,
 } from "@/api/types";
 import { AUTH_ENDPOINTS } from "@/lib/constants";
+import { accessTokenStorage, refreshTokenStorage } from "@/lib/storage";
 import {
   loginResponseSchema,
   meResponseSchema,
   messageResponseSchema,
+  refreshResponseSchema,
   registerResponseSchema,
   sendVerificationResponseSchema,
   verifyEmailResponseSchema,
@@ -81,4 +83,35 @@ export function resetPassword(data: ResetPasswordRequest): Promise<MessageRespon
     { method: "POST", body: data, noAuth: true },
     messageResponseSchema,
   );
+}
+
+/**
+ * Refresh the access token using a persisted refresh token.
+ * Uses raw fetch (not the API client) because the access token
+ * doesn't exist yet during restoration.
+ *
+ * Returns true if the token was refreshed, false otherwise.
+ */
+export async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = await refreshTokenStorage.getValue();
+  if (!refreshToken) return false;
+
+  try {
+    const res = await fetch(AUTH_ENDPOINTS.refresh, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${refreshToken}`,
+      },
+    });
+
+    if (res.ok) {
+      const data = refreshResponseSchema.parse(await res.json());
+      await accessTokenStorage.setValue(data.access_token);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
