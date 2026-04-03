@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStats } from "@/hooks/use-stats";
+import { extractShortCode } from "@/lib/url-utils";
 import { useAuthStore } from "@/stores/auth";
 
 export function AnalyticsTab() {
@@ -92,7 +93,8 @@ function UrlAnalytics() {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    const code = shortCode.trim().replace(/^https?:\/\/spoo\.me\//, "");
+    const trimmed = shortCode.trim();
+    const code = extractShortCode(trimmed) ?? trimmed.replace(/^https?:\/\/spoo\.me\//, "");
     if (code) setActiveCode(code);
   };
 
@@ -103,9 +105,16 @@ function UrlAnalytics() {
           value={shortCode}
           onChange={(e) => setShortCode(e.target.value)}
           placeholder="Short code or URL (e.g. abc123)"
+          aria-label="Short code or URL"
           className="h-8 text-sm"
         />
-        <Button type="submit" size="sm" className="h-8" disabled={!shortCode.trim()}>
+        <Button
+          type="submit"
+          size="sm"
+          className="h-8"
+          disabled={!shortCode.trim()}
+          aria-label="Look up analytics"
+        >
           <BarChart3 className="size-3.5" />
         </Button>
       </form>
@@ -354,13 +363,13 @@ function HighlightedBarChartCard({
     "";
 
   const chartData = data
-    .slice(0, 8)
     .map((d) => ({
       name: trunc(String(d[nameKey] ?? "Unknown"), 16),
       value: Number(d[countKey] ?? 0),
     }))
     .filter((d) => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
 
   if (chartData.length === 0) return null;
 
@@ -451,7 +460,6 @@ function RoundedPieChartCard({
   ];
 
   const chartData = data
-    .slice(0, 6)
     .map((d, i) => {
       const key = String(d[nameKey] ?? `item-${i}`)
         .toLowerCase()
@@ -463,7 +471,9 @@ function RoundedPieChartCard({
         fill: `var(--color-${key})`,
       };
     })
-    .filter((d) => d.value > 0);
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
 
   if (chartData.length === 0) return null;
 
@@ -555,7 +565,10 @@ function SkeletonStats() {
 function fmtDate(date: string): string {
   if (!date) return "";
   try {
-    const d = new Date(date);
+    // Append T12:00 to date-only strings so local timezone offset
+    // doesn't shift the displayed day (UTC midnight → previous day in US)
+    const normalized = date.includes("T") ? date : `${date}T12:00`;
+    const d = new Date(normalized);
     if (Number.isNaN(d.getTime())) return date.slice(5);
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   } catch {

@@ -33,8 +33,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDeleteUrl, useUpdateUrlStatus, useUrls } from "@/hooks/use-urls";
+import { smartDate } from "@/lib/format-date";
 
-function UrlRow({ item }: { item: UrlListItem }) {
+type SortOption = "created_at" | "total_clicks" | "last_click";
+
+const STATUS_VARIANT: Record<string, "destructive" | "warning" | "secondary"> = {
+  BLOCKED: "destructive",
+  EXPIRED: "warning",
+  INACTIVE: "secondary",
+};
+
+function UrlRow({ item, sortBy }: { item: UrlListItem; sortBy: SortOption }) {
   const [copied, setCopied] = useState(false);
   const deleteUrl = useDeleteUrl();
   const toggleStatus = useUpdateUrlStatus();
@@ -68,8 +77,11 @@ function UrlRow({ item }: { item: UrlListItem }) {
           </a>
           <p className="text-xs text-muted-foreground truncate mt-0.5">{item.long_url}</p>
         </div>
-        {item.status !== "ACTIVE" && (
-          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0">
+        {item.status && item.status !== "ACTIVE" && (
+          <Badge
+            variant={STATUS_VARIANT[item.status] ?? "secondary"}
+            className="text-[10px] px-1.5 py-0 shrink-0"
+          >
             {item.status}
           </Badge>
         )}
@@ -78,13 +90,10 @@ function UrlRow({ item }: { item: UrlListItem }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{item.total_clicks ?? 0} clicks</span>
-          {item.created_at && (
-            <span>
-              {new Date(item.created_at).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
+          {sortBy === "last_click" && item.last_click ? (
+            <span>{smartDate(item.last_click)}</span>
+          ) : (
+            item.created_at && <span>{smartDate(item.created_at)}</span>
           )}
         </div>
         <div className="flex gap-1">
@@ -100,12 +109,8 @@ function UrlRow({ item }: { item: UrlListItem }) {
           >
             {item.status === "ACTIVE" ? <Power className="size-3" /> : <Play className="size-3" />}
           </Button>
-          <Button variant="ghost" size="icon-xs" asChild title="Analytics">
-            <a
-              href={`https://spoo.me/stats/${item.alias}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+          <Button variant="ghost" size="icon-xs" asChild title="Open original URL">
+            <a href={item.long_url ?? "#"} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="size-3" />
             </a>
           </Button>
@@ -145,11 +150,14 @@ export function UrlsTab() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [sortBy, setSortByState] = useState<"created_at" | "total_clicks" | "last_click">(() => {
+  const VALID_SORTS: SortOption[] = ["created_at", "total_clicks", "last_click"];
+  const [sortBy, setSortByState] = useState<SortOption>(() => {
     const saved = localStorage.getItem("spoo-urls-sort");
-    return (saved as "created_at" | "total_clicks" | "last_click") || "created_at";
+    return saved && VALID_SORTS.includes(saved as SortOption)
+      ? (saved as SortOption)
+      : "created_at";
   });
-  const setSortBy = (v: typeof sortBy) => {
+  const setSortBy = (v: SortOption) => {
     setSortByState(v);
     localStorage.setItem("spoo-urls-sort", v);
   };
@@ -214,7 +222,7 @@ export function UrlsTab() {
         <>
           <div className="space-y-2">
             {data.items.map((item) => (
-              <UrlRow key={item.id} item={item} />
+              <UrlRow key={item.id} item={item} sortBy={sortBy} />
             ))}
           </div>
 

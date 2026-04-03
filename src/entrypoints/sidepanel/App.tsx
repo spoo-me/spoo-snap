@@ -1,10 +1,9 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { AuthSection } from "@/components/auth/AuthSection";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
-import { AnalyticsTab } from "@/components/sidepanel/AnalyticsTab";
 import { DashboardTab } from "@/components/sidepanel/DashboardTab";
 import { SettingsTab } from "@/components/sidepanel/SettingsTab";
 import { UrlsTab } from "@/components/sidepanel/UrlsTab";
@@ -14,6 +13,10 @@ import { createQueryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useUiStore } from "@/stores/ui";
+
+const AnalyticsTab = lazy(() =>
+  import("@/components/sidepanel/AnalyticsTab").then((m) => ({ default: m.AnalyticsTab })),
+);
 
 const queryClient = createQueryClient();
 
@@ -75,7 +78,15 @@ function SidePanelContent() {
           value="analytics"
           className="mt-4 animate-in fade-in slide-in-from-bottom-1 duration-200"
         >
-          <AnalyticsTab />
+          <Suspense
+            fallback={
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Loading analytics...
+              </div>
+            }
+          >
+            <AnalyticsTab />
+          </Suspense>
         </TabsContent>
         <TabsContent
           value="settings"
@@ -94,7 +105,7 @@ export default function App() {
   const setOnline = useUiStore((s) => s.setOnline);
 
   useEffect(() => {
-    initAuth();
+    const unwatchPromise = initAuth();
     initSettings();
 
     const handleOnline = () => setOnline(true);
@@ -102,6 +113,7 @@ export default function App() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
+      unwatchPromise.then((unwatch) => unwatch());
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };

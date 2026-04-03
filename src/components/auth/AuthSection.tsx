@@ -1,5 +1,5 @@
-import { ExternalLink, Key, LogIn } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { ExternalLink, Key, Loader2, LogIn } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +23,11 @@ import { useAuthStore } from "@/stores/auth";
 export function AuthSection() {
   const { mode } = useAuthStore();
   const [open, setOpen] = useState(false);
+
+  // Close dialog when auth succeeds (e.g., device flow completes in background)
+  useEffect(() => {
+    if (mode !== "anonymous") setOpen(false);
+  }, [mode]);
 
   if (mode !== "anonymous") return null;
 
@@ -51,7 +56,7 @@ export function AuthSection() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="email" className="mt-3">
-            <WebLoginForm onSuccess={() => setOpen(false)} />
+            <WebLoginForm />
           </TabsContent>
           <TabsContent value="apikey" className="mt-3">
             <ApiKeyForm onSuccess={() => setOpen(false)} />
@@ -62,23 +67,53 @@ export function AuthSection() {
   );
 }
 
-function WebLoginForm({ onSuccess }: { onSuccess: () => void }) {
+function WebLoginForm() {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
   const handleWebLogin = async () => {
+    if (pending) return;
+    setPending(true);
+    setError("");
     const state = crypto.randomUUID();
     await deviceAuthStateStorage.setValue(state);
     try {
       await browser.tabs.create({ url: `${AUTH_ENDPOINTS.deviceLogin}?state=${state}` });
-      onSuccess();
     } catch {
       await deviceAuthStateStorage.setValue(null);
+      setPending(false);
+      setError("Failed to open sign in page");
     }
   };
+
+  if (pending) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-4">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        <p className="text-xs text-muted-foreground text-center">
+          Waiting for sign in on spoo.me...
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs"
+          onClick={() => {
+            setPending(false);
+            deviceAuthStateStorage.setValue(null);
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
         Sign in securely on spoo.me where you can verify the URL.
       </p>
+      {error && <p className="text-xs text-destructive">{error}</p>}
       <Button onClick={handleWebLogin} size="sm" className="w-full">
         <ExternalLink className="size-3 mr-1" />
         Sign in on spoo.me

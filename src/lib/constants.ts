@@ -50,5 +50,8 @@ export const DEFAULT_SETTINGS = {
 
 export const HISTORY_MAX_ITEMS = 100;
 
+/** Branded QR gradient matching the spoo.me dashboard */
+export const QR_BRAND = { start: "#1d1919", end: "#322c29", size: 300 } as const;
+
 export const ACCESS_TOKEN_TTL_MS = 900 * 1000; // 15 minutes
 export const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // Refresh 5 min before expiry

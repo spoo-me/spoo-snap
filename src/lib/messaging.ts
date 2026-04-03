@@ -1,5 +1,3 @@
-export type MessageType = "shorten-url" | "get-auth-state" | "device-auth-code";
-
 export interface ShortenUrlMessage {
   type: "shorten-url";
   url: string;

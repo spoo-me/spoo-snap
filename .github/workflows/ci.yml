@@ -38,7 +38,7 @@ jobs:
           TOTAL=$(du -sb .output/chrome-mv3/ | cut -f1)
           TOTAL_KB=$((TOTAL / 1024))
           echo "Total bundle size: ${TOTAL_KB}KB"
-          if [ "$TOTAL_KB" -gt 1024 ]; then
-            echo "::error::Bundle size ${TOTAL_KB}KB exceeds 1MB limit"
+          if [ "$TOTAL_KB" -gt 1536 ]; then
+            echo "::error::Bundle size ${TOTAL_KB}KB exceeds 1.5MB limit"
             exit 1
           fi

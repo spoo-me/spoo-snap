@@ -1,11 +1,12 @@
 import { refreshAccessToken } from "@/api/auth";
-import { classicQrUrl, gradientQrUrl } from "@/api/qr";
+import { gradientQrUrl } from "@/api/qr";
 import { shortenUrl } from "@/api/shorten";
 import {
   ACCESS_TOKEN_TTL_MS,
   API_BASE_URL,
   AUTH_ENDPOINTS,
   HISTORY_MAX_ITEMS,
+  QR_BRAND,
   TOKEN_REFRESH_BUFFER_MS,
 } from "@/lib/constants";
 import type { ExtensionMessage } from "@/lib/messaging";
@@ -36,25 +37,8 @@ async function getQrUrl(text: string): Promise<string | null> {
   const settings = await settingsStorage.getValue();
   if (!settings.qr.enabled) return null;
 
-  if (settings.qr.style === "gradient") {
-    return gradientQrUrl({
-      content: text,
-      start: settings.qr.gradient.start,
-      end: settings.qr.gradient.end,
-      background: settings.qr.gradient.background,
-      direction: settings.qr.gradient.direction,
-      style: settings.qr.moduleStyle,
-      size: settings.qr.size ?? undefined,
-    });
-  }
-
-  return classicQrUrl({
-    content: text,
-    color: settings.qr.classic.color,
-    background: settings.qr.classic.background,
-    style: settings.qr.moduleStyle,
-    size: settings.qr.size ?? undefined,
-  });
+  // Match the dashboard's branded gradient QR style
+  return gradientQrUrl({ content: text, ...QR_BRAND });
 }
 
 async function copyToClipboard(text: string, tabId?: number): Promise<void> {
@@ -146,8 +130,7 @@ async function handleTokenRefresh(): Promise<void> {
     // Token expired or invalid — clean up and go anonymous
     const hasRefresh = await refreshTokenStorage.getValue();
     if (hasRefresh) {
-      await accessTokenStorage.setValue(null);
-      await refreshTokenStorage.setValue(null);
+      await Promise.all([accessTokenStorage.setValue(null), refreshTokenStorage.setValue(null)]);
       await authModeStorage.setValue("anonymous");
     }
   }
@@ -166,9 +149,11 @@ async function exchangeDeviceCode(code: string): Promise<void> {
   }
 
   const data = deviceTokenResponseSchema.parse(json);
-  await accessTokenStorage.setValue(data.access_token);
-  await refreshTokenStorage.setValue(data.refresh_token);
-  await userProfileStorage.setValue(data.user);
+  await Promise.all([
+    accessTokenStorage.setValue(data.access_token),
+    refreshTokenStorage.setValue(data.refresh_token),
+    userProfileStorage.setValue(data.user),
+  ]);
   await authModeStorage.setValue("jwt");
 
   // Set up token refresh alarm

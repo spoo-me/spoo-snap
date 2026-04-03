@@ -237,10 +237,32 @@ function injectToastNotification(
         border-radius: 12px;
         padding: 5px;
         border: 1px solid #e4e4e7;
+        position: relative;
+        cursor: pointer;
       }
       .dark .qr-container {
         background: #ffffff;
         border-color: #27272a;
+      }
+      .qr-overlay {
+        position: absolute;
+        inset: 5px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+      }
+      .qr-container:hover .qr-overlay { opacity: 1; }
+      .qr-container:hover .qr { filter: blur(2px); }
+      .qr-overlay svg {
+        width: 24px;
+        height: 24px;
+        color: #ffffff;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
       }
       .qr-skeleton {
         width: 100px;
@@ -263,6 +285,7 @@ function injectToastNotification(
         height: 100px;
         border-radius: 6px;
         display: block;
+        transition: filter 0.2s;
       }
 
       .progress {
@@ -298,7 +321,7 @@ function injectToastNotification(
               <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
           </div>
-          ${qrUrl ? `<div class="qr-wrap"><div class="qr-container"><div class="qr-skeleton"></div><img class="qr" src="${qrUrl}" alt="QR" style="display:none" /></div></div>` : ""}
+          ${qrUrl ? `<div class="qr-wrap"><div class="qr-container"><div class="qr-skeleton"></div><img class="qr" src="${qrUrl}" alt="QR" crossorigin="anonymous" style="display:none" /><div class="qr-overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div></div></div>` : ""}
         </div>
         <div class="progress"><div class="progress-bar"></div></div>
       </div>
@@ -340,9 +363,10 @@ function injectToastNotification(
     }
   });
 
-  // QR skeleton → image swap on load
+  // QR skeleton → image swap on load + download on click
   const qrImg = shadow.querySelector<HTMLImageElement>(".qr");
   const qrSkeleton = shadow.querySelector(".qr-skeleton");
+  const qrContainer = shadow.querySelector<HTMLElement>(".qr-container");
   if (qrImg && qrSkeleton) {
     qrImg.addEventListener("load", () => {
       qrSkeleton.remove();
@@ -350,6 +374,33 @@ function injectToastNotification(
     });
     qrImg.addEventListener("error", () => {
       qrSkeleton.remove();
+    });
+  }
+  if (qrContainer && qrImg) {
+    qrContainer.addEventListener("click", () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = qrImg.naturalWidth || 100;
+        canvas.height = qrImg.naturalHeight || 100;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(qrImg, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "qrcode.png";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+          }, "image/png");
+          return;
+        }
+      } catch {
+        // Canvas tainted — fall through
+      }
+      window.open(qrImg.src, "_blank");
     });
   }
 

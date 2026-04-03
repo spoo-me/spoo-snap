@@ -103,6 +103,7 @@ export async function refreshAccessToken(): Promise<boolean> {
         "Content-Type": "application/json",
         Authorization: `Bearer ${refreshToken}`,
       },
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (res.ok) {

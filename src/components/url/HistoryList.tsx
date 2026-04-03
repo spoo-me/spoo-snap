@@ -45,8 +45,8 @@ function HistoryRow({ item }: { item: HistoryItem }) {
         <Button variant="ghost" size="icon-xs" onClick={handleCopy} title="Copy short URL">
           {copied ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
         </Button>
-        <Button variant="ghost" size="icon-xs" asChild title="Open analytics">
-          <a href={`https://spoo.me/stats/${item.alias}`} target="_blank" rel="noopener noreferrer">
+        <Button variant="ghost" size="icon-xs" asChild title="Open original URL">
+          <a href={item.originalUrl} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="size-3" />
           </a>
         </Button>

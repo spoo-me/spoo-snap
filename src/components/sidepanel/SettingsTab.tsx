@@ -14,7 +14,7 @@ import { useSettings } from "@/hooks/use-settings";
 import type { ExtensionSettings } from "@/schemas/settings";
 
 export function SettingsTab() {
-  const { settings, updateSettings, updateNotification, toggleAutoCopy, setTheme } = useSettings();
+  const { settings, updateSettings, updateNotification, setTheme } = useSettings();
 
   return (
     <div className="space-y-5">
@@ -46,7 +46,7 @@ export function SettingsTab() {
           label="Auto-copy shortened URL"
           description="Copy to clipboard after shortening"
           checked={settings.autoCopy}
-          onChange={toggleAutoCopy}
+          onChange={(checked) => updateSettings({ autoCopy: checked })}
         />
       </SettingsSection>
 
@@ -58,7 +58,7 @@ export function SettingsTab() {
           label="Stealth mode"
           description="Shorten silently without notifications"
           checked={settings.notification.stealthMode}
-          onChange={() => updateNotification({ stealthMode: !settings.notification.stealthMode })}
+          onChange={(checked) => updateNotification({ stealthMode: checked })}
         />
         <div className="space-y-2">
           <Label className="text-xs">Auto-hide duration: {settings.notification.duration}s</Label>
@@ -84,16 +84,14 @@ export function SettingsTab() {
           label="Enable QR codes"
           description="Generate QR code when shortening"
           checked={settings.qr.enabled}
-          onChange={() => updateSettings({ qr: { ...settings.qr, enabled: !settings.qr.enabled } })}
+          onChange={(checked) => updateSettings({ qr: { ...settings.qr, enabled: checked } })}
         />
         <ToggleRow
           label="Use original URL for QR"
           description="Encode the original URL instead of shortened"
           checked={settings.qr.useOriginalUrl}
-          onChange={() =>
-            updateSettings({
-              qr: { ...settings.qr, useOriginalUrl: !settings.qr.useOriginalUrl },
-            })
+          onChange={(checked) =>
+            updateSettings({ qr: { ...settings.qr, useOriginalUrl: checked } })
           }
         />
       </SettingsSection>
@@ -121,7 +119,7 @@ function ToggleRow({
   label: string;
   description: string;
   checked: boolean;
-  onChange: () => void;
+  onChange: (checked: boolean) => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-3">

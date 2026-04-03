@@ -29,11 +29,22 @@ function PopupContent() {
   };
 
   const openSidePanel = async () => {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (tab?.windowId != null) {
-      // biome-ignore lint/suspicious/noExplicitAny: sidePanel API lacks type definitions in WXT
-      await (browser as any).sidePanel.open({ windowId: tab.windowId });
+    try {
+      // biome-ignore lint/suspicious/noExplicitAny: sidePanel/sidebarAction APIs lack type definitions in WXT
+      const b = browser as any;
+      if (b.sidePanel?.open) {
+        // Chrome: sidePanel API
+        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+        if (tab?.windowId != null) {
+          await b.sidePanel.open({ windowId: tab.windowId });
+        }
+      } else if (b.sidebarAction?.open) {
+        // Firefox: sidebarAction API
+        await b.sidebarAction.open();
+      }
       window.close();
+    } catch {
+      // Silently fail if neither API is available
     }
   };
 
@@ -129,7 +140,7 @@ export default function App() {
   const setOnline = useUiStore((s) => s.setOnline);
 
   useEffect(() => {
-    initAuth();
+    const unwatchPromise = initAuth();
     initSettings();
 
     const handleOnline = () => setOnline(true);
@@ -137,6 +148,7 @@ export default function App() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
+      unwatchPromise.then((unwatch) => unwatch());
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };

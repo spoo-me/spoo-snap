@@ -14,8 +14,8 @@ interface AuthState {
   user: UserProfile | null;
   isLoading: boolean;
 
-  /** Initialize auth state from storage */
-  initialize: () => Promise<void>;
+  /** Initialize auth state from storage. Returns cleanup function to unsubscribe watchers. */
+  initialize: () => Promise<() => void>;
 
   /** Set JWT auth after login */
   setJwtAuth: (accessToken: string, refreshToken: string, user: UserProfile) => Promise<void>;
@@ -83,13 +83,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     // Watch for auth changes from the background script (e.g., device auth flow)
-    authModeStorage.watch((newMode) => {
+    const unwatch = authModeStorage.watch((newMode) => {
       if (newMode !== useAuthStore.getState().mode) {
         userProfileStorage.getValue().then((newUser) => {
           set({ mode: newMode, user: newUser });
         });
       }
     });
+
+    return unwatch;
   },
 
   setJwtAuth: async (accessToken, refreshToken, user) => {
@@ -97,20 +99,20 @@ export const useAuthStore = create<AuthState>((set) => ({
       accessTokenStorage.setValue(accessToken),
       refreshTokenStorage.setValue(refreshToken),
       userProfileStorage.setValue(user),
-      authModeStorage.setValue("jwt"),
       apiKeyStorage.setValue(null),
     ]);
+    await authModeStorage.setValue("jwt");
     set({ mode: "jwt", user });
   },
 
   setApiKeyAuth: async (apiKey) => {
     await Promise.all([
       apiKeyStorage.setValue(apiKey),
-      authModeStorage.setValue("apikey"),
       accessTokenStorage.setValue(null),
       refreshTokenStorage.setValue(null),
       userProfileStorage.setValue(null),
     ]);
+    await authModeStorage.setValue("apikey");
     set({ mode: "apikey", user: null });
   },
 
@@ -120,8 +122,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       refreshTokenStorage.setValue(null),
       apiKeyStorage.setValue(null),
       userProfileStorage.setValue(null),
-      authModeStorage.setValue("anonymous"),
     ]);
+    await authModeStorage.setValue("anonymous");
     set({ mode: "anonymous", user: null });
   },
 
