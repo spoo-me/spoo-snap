@@ -1,5 +1,5 @@
-export const API_BASE_URL = "https://spoo.me";
-export const QR_API_BASE_URL = "https://qr.spoo.me";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://spoo.me";
+export const QR_API_BASE_URL = import.meta.env.VITE_QR_API_BASE_URL || "https://qr.spoo.me";
 
 export const API_V1 = `${API_BASE_URL}/api/v1`;
 export const QR_API_V1 = `${QR_API_BASE_URL}/api/v1`;
@@ -15,6 +15,8 @@ export const AUTH_ENDPOINTS = {
   verifyEmail: `${API_BASE_URL}/auth/verify-email`,
   requestPasswordReset: `${API_BASE_URL}/auth/request-password-reset`,
   resetPassword: `${API_BASE_URL}/auth/reset-password`,
+  deviceLogin: `${API_BASE_URL}/auth/device/login`,
+  deviceToken: `${API_BASE_URL}/auth/device/token`,
 } as const;
 
 export const OAUTH_ENDPOINTS = {

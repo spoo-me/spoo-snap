@@ -1,6 +1,8 @@
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "wxt";
 
+const isDev = process.env.NODE_ENV === "development";
+
 export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/module-react"],
@@ -23,7 +25,11 @@ export default defineConfig({
       "sidePanel",
       "alarms",
     ],
-    host_permissions: ["https://spoo.me/*", "https://qr.spoo.me/*"],
+    host_permissions: [
+      "https://spoo.me/*",
+      "https://qr.spoo.me/*",
+      ...(isDev ? ["http://127.0.0.1/*", "http://localhost/*"] : []),
+    ],
     web_accessible_resources: [
       {
         resources: ["icon/*"],

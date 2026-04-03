@@ -55,3 +55,7 @@ export interface QueuedShorten {
 export const shortenQueueStorage = storage.defineItem<QueuedShorten[]>("local:shortenQueue", {
   fallback: [],
 });
+
+export const deviceAuthStateStorage = storage.defineItem<string | null>("local:deviceAuthState", {
+  fallback: null,
+});

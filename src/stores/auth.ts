@@ -40,6 +40,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       userProfileStorage.getValue(),
     ]);
     set({ mode, user, isLoading: false });
+
+    // Watch for auth changes from the background script (e.g., device auth flow)
+    authModeStorage.watch((newMode) => {
+      if (newMode !== useAuthStore.getState().mode) {
+        userProfileStorage.getValue().then((newUser) => {
+          set({ mode: newMode, user: newUser });
+        });
+      }
+    });
   },
 
   setJwtAuth: async (accessToken, refreshToken, user) => {

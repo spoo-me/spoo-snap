@@ -1,4 +1,4 @@
-import { Key, LogIn } from "lucide-react";
+import { ExternalLink, Key, LogIn } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLogin } from "@/hooks/use-auth";
+import { AUTH_ENDPOINTS } from "@/lib/constants";
+import { deviceAuthStateStorage } from "@/lib/storage";
 import { useAuthStore } from "@/stores/auth";
 
 /**
@@ -51,7 +51,7 @@ export function AuthSection() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="email" className="mt-3">
-            <LoginForm onSuccess={() => setOpen(false)} />
+            <WebLoginForm onSuccess={() => setOpen(false)} />
           </TabsContent>
           <TabsContent value="apikey" className="mt-3">
             <ApiKeyForm onSuccess={() => setOpen(false)} />
@@ -62,65 +62,27 @@ export function AuthSection() {
   );
 }
 
-function LoginForm({ onSuccess }: { onSuccess: () => void }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const login = useLogin();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    login.mutate({ email, password }, { onSuccess });
+function WebLoginForm({ onSuccess }: { onSuccess: () => void }) {
+  const handleWebLogin = async () => {
+    const state = crypto.randomUUID();
+    await deviceAuthStateStorage.setValue(state);
+    browser.tabs.create({ url: `${AUTH_ENDPOINTS.deviceLogin}?state=${state}` });
+    onSuccess();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="space-y-2">
-        <div className="space-y-1">
-          <Label htmlFor="login-email" className="text-xs">
-            Email
-          </Label>
-          <Input
-            id="login-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="h-8 text-sm"
-            required
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="login-password" className="text-xs">
-            Password
-          </Label>
-          <Input
-            id="login-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="h-8 text-sm"
-            required
-          />
-        </div>
-      </div>
-      {login.error && <p className="text-xs text-destructive">{login.error.message}</p>}
-      <Button type="submit" size="sm" className="w-full" disabled={login.isPending}>
-        {login.isPending ? "Signing in..." : "Sign in"}
-      </Button>
-      <Separator />
-      <p className="text-[11px] text-center text-muted-foreground">
-        Don't have an account?{" "}
-        <a
-          href="https://spoo.me/register"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:underline"
-        >
-          Register on spoo.me
-        </a>
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Sign in securely on spoo.me where you can verify the URL.
       </p>
-    </form>
+      <Button onClick={handleWebLogin} size="sm" className="w-full">
+        <ExternalLink className="size-3 mr-1" />
+        Sign in on spoo.me
+      </Button>
+      <p className="text-[11px] text-center text-muted-foreground">
+        Don't have an account? You can register on spoo.me too.
+      </p>
+    </div>
   );
 }
 

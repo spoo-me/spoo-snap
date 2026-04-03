@@ -40,6 +40,12 @@ export const refreshResponseSchema = z.object({
   access_token: z.string(),
 });
 
+export const deviceTokenResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  user: userProfileSchema,
+});
+
 export const meResponseSchema = z.object({
   user: userProfileSchema,
 });

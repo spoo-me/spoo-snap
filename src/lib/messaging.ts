@@ -1,4 +1,4 @@
-export type MessageType = "shorten-url" | "auth-changed" | "get-auth-state";
+export type MessageType = "shorten-url" | "auth-changed" | "get-auth-state" | "device-auth-code";
 
 export interface ShortenUrlMessage {
   type: "shorten-url";
@@ -15,7 +15,16 @@ export interface GetAuthStateMessage {
   type: "get-auth-state";
 }
 
-export type ExtensionMessage = ShortenUrlMessage | AuthChangedMessage | GetAuthStateMessage;
+export interface DeviceAuthCodeMessage {
+  type: "device-auth-code";
+  code: string;
+}
+
+export type ExtensionMessage =
+  | ShortenUrlMessage
+  | AuthChangedMessage
+  | GetAuthStateMessage
+  | DeviceAuthCodeMessage;
 
 /**
  * Send a typed message to the background service worker.

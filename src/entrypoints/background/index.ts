@@ -16,9 +16,10 @@ import {
   refreshTokenStorage,
   settingsStorage,
   shortenQueueStorage,
+  userProfileStorage,
 } from "@/lib/storage";
 import { isAnyUrl, normalizeUrl } from "@/lib/url-utils";
-import { refreshResponseSchema } from "@/schemas/api";
+import { deviceTokenResponseSchema, refreshResponseSchema } from "@/schemas/api";
 import type { HistoryItem } from "@/schemas/settings";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -163,6 +164,30 @@ async function refreshAccessToken(): Promise<void> {
   }
 }
 
+async function exchangeDeviceCode(code: string): Promise<void> {
+  const res = await fetch(AUTH_ENDPOINTS.deviceToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.error || "Token exchange failed");
+  }
+
+  const data = deviceTokenResponseSchema.parse(json);
+  await accessTokenStorage.setValue(data.access_token);
+  await refreshTokenStorage.setValue(data.refresh_token);
+  await userProfileStorage.setValue(data.user);
+  await authModeStorage.setValue("jwt");
+
+  // Set up token refresh alarm
+  browser.alarms.create("refresh-token", {
+    periodInMinutes: (ACCESS_TOKEN_TTL_MS - TOKEN_REFRESH_BUFFER_MS) / 60_000,
+  });
+}
+
 // ── Main ─────────────────────────────────────────────────────
 
 export default defineBackground(() => {
@@ -196,7 +221,7 @@ export default defineBackground(() => {
   });
 
   // ── Message Handler ──────────────────────────────────────
-  browser.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
+  browser.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
     if (message.type === "shorten-url") {
       shortenUrl({ long_url: message.url, alias: message.alias }).then(
         (result) => sendResponse(result),
@@ -209,6 +234,18 @@ export default defineBackground(() => {
       authModeStorage.getValue().then(
         (mode) => sendResponse({ mode }),
         () => sendResponse({ mode: "anonymous" }),
+      );
+      return true;
+    }
+
+    if (message.type === "device-auth-code") {
+      exchangeDeviceCode(message.code).then(
+        () => {
+          sendResponse({ success: true });
+          // Close the callback tab
+          if (sender.tab?.id) browser.tabs.remove(sender.tab.id).catch(() => {});
+        },
+        (err) => sendResponse({ error: String(err) }),
       );
       return true;
     }
