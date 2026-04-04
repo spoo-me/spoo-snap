@@ -505,7 +505,7 @@ function RoundedPieChartCard({
           <defs>
             <DottedBackground id={`dots-pie-${title.replace(/\s/g, "")}`} />
           </defs>
-          <ChartTooltip content={<ChartTooltipContent nameKey="value" hideLabel />} />
+          <ChartTooltip content={<ChartTooltipContent hideLabel />} />
           <Pie
             data={chartData}
             dataKey="value"

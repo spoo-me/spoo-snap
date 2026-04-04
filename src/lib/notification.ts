@@ -375,6 +375,11 @@ function injectToastNotification(
     qrImg.addEventListener("error", () => {
       qrSkeleton.remove();
     });
+    // Handle cached/fast responses where load fires before listeners attach
+    if (qrImg.complete) {
+      qrSkeleton.remove();
+      if (qrImg.naturalWidth > 0) qrImg.style.display = "block";
+    }
   }
   if (qrContainer && qrImg) {
     qrContainer.addEventListener("click", () => {
