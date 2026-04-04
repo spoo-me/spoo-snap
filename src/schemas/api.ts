@@ -38,6 +38,7 @@ export const registerResponseSchema = z.object({
 
 export const refreshResponseSchema = z.object({
   access_token: z.string(),
+  refresh_token: z.string(),
 });
 
 export const deviceTokenResponseSchema = z.object({

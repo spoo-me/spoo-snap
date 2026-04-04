@@ -17,6 +17,7 @@ export const AUTH_ENDPOINTS = {
   resetPassword: `${API_BASE_URL}/auth/reset-password`,
   deviceLogin: `${API_BASE_URL}/auth/device/login`,
   deviceToken: `${API_BASE_URL}/auth/device/token`,
+  deviceRefresh: `${API_BASE_URL}/auth/device/refresh`,
 } as const;
 
 export const OAUTH_ENDPOINTS = {

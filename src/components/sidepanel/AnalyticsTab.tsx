@@ -364,6 +364,7 @@ function HighlightedBarChartCard({
 
   const chartData = data
     .map((d) => ({
+      id: String(d[nameKey] ?? "Unknown"),
       name: trunc(String(d[nameKey] ?? "Unknown"), 16),
       value: Number(d[countKey] ?? 0),
     }))
@@ -382,7 +383,7 @@ function HighlightedBarChartCard({
       <h4 className="text-sm font-medium">{title}</h4>
       <p className="text-xs text-muted-foreground mb-2">
         {activeData
-          ? `${activeData.name}: ${fmt(activeData.value)} clicks`
+          ? `${activeData.id}: ${fmt(activeData.value)} clicks`
           : `${chartData.length} items`}
       </p>
       <ChartContainer
@@ -419,7 +420,7 @@ function HighlightedBarChartCard({
           <Bar dataKey="value" fill="var(--color-value)" radius={4}>
             {chartData.map((_, index) => (
               <Cell
-                key={chartData[index].name}
+                key={chartData[index].id}
                 className="transition-opacity duration-200"
                 fillOpacity={activeIndex === null ? 1 : activeIndex === index ? 1 : 0.3}
                 stroke={activeIndex === index ? "var(--color-value)" : "none"}
@@ -473,7 +474,7 @@ function RoundedPieChartCard({
     })
     .filter((d) => d.value > 0)
     .sort((a, b) => b.value - a.value)
-    .slice(0, 6);
+    .slice(0, chartColors.length);
 
   if (chartData.length === 0) return null;
 

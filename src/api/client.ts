@@ -41,12 +41,10 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await fetch(AUTH_ENDPOINTS.refresh, {
+    const res = await fetch(AUTH_ENDPOINTS.deviceRefresh, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${refreshToken}`,
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
     if (!res.ok) {
@@ -59,6 +57,7 @@ async function refreshAccessToken(): Promise<string | null> {
 
     const data = refreshResponseSchema.parse(await res.json());
     await accessTokenStorage.setValue(data.access_token);
+    await refreshTokenStorage.setValue(data.refresh_token);
     return data.access_token;
   } catch {
     return null;

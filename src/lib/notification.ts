@@ -42,12 +42,16 @@ export async function showToastNotification(
     }
   }
 
-  await browser.notifications.create(`spoo-${Date.now()}`, {
-    type: "basic",
-    iconUrl: browser.runtime.getURL("/icon/128.png"),
-    title: "URL Shortened!",
-    message: shortUrl,
-  });
+  try {
+    await browser.notifications.create(`spoo-${Date.now()}`, {
+      type: "basic",
+      iconUrl: browser.runtime.getURL("/icon/128.png"),
+      title: "URL Shortened!",
+      message: shortUrl,
+    });
+  } catch {
+    // Best-effort — notification permission may be denied
+  }
 }
 
 /**

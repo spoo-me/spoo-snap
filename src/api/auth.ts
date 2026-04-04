@@ -97,18 +97,17 @@ export async function refreshAccessToken(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const res = await fetch(AUTH_ENDPOINTS.refresh, {
+    const res = await fetch(AUTH_ENDPOINTS.deviceRefresh, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${refreshToken}`,
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
       signal: AbortSignal.timeout(10_000),
     });
 
     if (res.ok) {
       const data = refreshResponseSchema.parse(await res.json());
       await accessTokenStorage.setValue(data.access_token);
+      await refreshTokenStorage.setValue(data.refresh_token);
       return true;
     }
     return false;

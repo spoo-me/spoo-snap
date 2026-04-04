@@ -78,7 +78,9 @@ function WebLoginForm() {
     const state = crypto.randomUUID();
     await deviceAuthStateStorage.setValue(state);
     try {
-      await browser.tabs.create({ url: `${AUTH_ENDPOINTS.deviceLogin}?state=${state}` });
+      await browser.tabs.create({
+        url: `${AUTH_ENDPOINTS.deviceLogin}?app_id=spoo-snap&state=${state}`,
+      });
     } catch {
       await deviceAuthStateStorage.setValue(null);
       setPending(false);

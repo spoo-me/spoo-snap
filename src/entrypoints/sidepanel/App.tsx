@@ -21,8 +21,12 @@ const AnalyticsTab = lazy(() =>
 const queryClient = createQueryClient();
 
 function SidePanelContent() {
-  const { mode } = useAuthStore();
+  const { mode, isLoading } = useAuthStore();
   const isAuthenticated = mode !== "anonymous";
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

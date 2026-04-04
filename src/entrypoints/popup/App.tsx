@@ -18,10 +18,14 @@ import { useUiStore } from "@/stores/ui";
 const queryClient = createQueryClient();
 
 function PopupContent() {
-  const { mode } = useAuthStore();
+  const { mode, isLoading } = useAuthStore();
   const { updateSettings } = useSettingsStore();
   const isDark = document.documentElement.classList.contains("dark");
   const isAuthenticated = mode !== "anonymous";
+
+  if (isLoading) {
+    return <div className="w-[380px] h-[560px] bg-background" />;
+  }
 
   const toggleTheme = () => {
     const next = isDark ? "light" : "dark";
