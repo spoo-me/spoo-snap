@@ -190,10 +190,6 @@ export const apiKeyResponseSchema = z.object({
   token_prefix: z.string().nullable(),
 });
 
-export const apiKeyCreatedResponseSchema = apiKeyResponseSchema.extend({
-  token: z.string(),
-});
-
 export const apiKeysListResponseSchema = z.object({
   keys: z.array(apiKeyResponseSchema),
 });

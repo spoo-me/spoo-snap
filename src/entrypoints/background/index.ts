@@ -17,6 +17,7 @@ import { showToastNotification } from "@/lib/notification";
 import {
   accessTokenStorage,
   authModeStorage,
+  deviceAuthVerifierStorage,
   historyStorage,
   refreshTokenStorage,
   settingsStorage,
@@ -127,22 +128,22 @@ async function processOfflineQueue(): Promise<void> {
 }
 
 async function handleTokenRefresh(): Promise<void> {
-  const refreshed = await refreshAccessToken();
-  if (!refreshed) {
-    // Token expired or invalid — clean up and go anonymous
-    const hasRefresh = await refreshTokenStorage.getValue();
-    if (hasRefresh) {
-      await Promise.all([accessTokenStorage.setValue(null), refreshTokenStorage.setValue(null)]);
-      await authModeStorage.setValue("anonymous");
-    }
-  }
+  // A revoked grant or expired refresh token clears the session inside
+  // refreshAccessToken (401). Transient failures leave it intact to retry
+  // on the next alarm.
+  await refreshAccessToken();
 }
 
 async function exchangeDeviceCode(code: string): Promise<void> {
+  const codeVerifier = await deviceAuthVerifierStorage.getValue();
+  if (!codeVerifier) {
+    throw new Error("Missing PKCE verifier — please start sign in again");
+  }
+
   const res = await fetch(AUTH_ENDPOINTS.deviceToken, {
     method: "POST",
     headers: { "Content-Type": "application/json", [CLIENT_HEADER]: CLIENT_HEADER_VALUE },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, code_verifier: codeVerifier }),
   });
 
   const json = await res.json();
@@ -155,6 +156,7 @@ async function exchangeDeviceCode(code: string): Promise<void> {
     accessTokenStorage.setValue(data.access_token),
     refreshTokenStorage.setValue(data.refresh_token),
     userProfileStorage.setValue(data.user),
+    deviceAuthVerifierStorage.setValue(null),
   ]);
   await authModeStorage.setValue("jwt");
 

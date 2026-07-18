@@ -14,7 +14,7 @@ import type {
   VerifyEmailResponse,
 } from "@/api/types";
 import { AUTH_ENDPOINTS, CLIENT_HEADER, CLIENT_HEADER_VALUE } from "@/lib/constants";
-import { accessTokenStorage, refreshTokenStorage } from "@/lib/storage";
+import { accessTokenStorage, clearJwtSession, refreshTokenStorage } from "@/lib/storage";
 import {
   loginResponseSchema,
   meResponseSchema,
@@ -110,6 +110,13 @@ export async function refreshAccessToken(): Promise<boolean> {
       await refreshTokenStorage.setValue(data.refresh_token);
       return true;
     }
+
+    if (res.status === 401) {
+      // Grant revoked or refresh token expired — clear the session so we
+      // don't keep retrying a dead grant.
+      await clearJwtSession();
+    }
+    // Transient failures leave tokens intact for a later retry.
     return false;
   } catch {
     return false;
