@@ -4,6 +4,10 @@ export const QR_API_BASE_URL = import.meta.env.VITE_QR_API_BASE_URL || "https://
 export const API_V1 = `${API_BASE_URL}/api/v1`;
 export const QR_API_V1 = `${QR_API_BASE_URL}/api/v1`;
 
+/** Identifies this client to the spoo.me API. Never sent to third-party hosts. */
+export const CLIENT_HEADER = "X-Spoo-Client";
+export const CLIENT_HEADER_VALUE = `snap/${browser.runtime.getManifest().version}`;
+
 export const AUTH_ENDPOINTS = {
   login: `${API_BASE_URL}/auth/login`,
   register: `${API_BASE_URL}/auth/register`,

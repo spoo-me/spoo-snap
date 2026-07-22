@@ -13,7 +13,7 @@ import type {
   VerifyEmailRequest,
   VerifyEmailResponse,
 } from "@/api/types";
-import { AUTH_ENDPOINTS } from "@/lib/constants";
+import { AUTH_ENDPOINTS, CLIENT_HEADER, CLIENT_HEADER_VALUE } from "@/lib/constants";
 import { accessTokenStorage, refreshTokenStorage } from "@/lib/storage";
 import {
   loginResponseSchema,
@@ -99,7 +99,7 @@ export async function refreshAccessToken(): Promise<boolean> {
   try {
     const res = await fetch(AUTH_ENDPOINTS.deviceRefresh, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", [CLIENT_HEADER]: CLIENT_HEADER_VALUE },
       body: JSON.stringify({ refresh_token: refreshToken }),
       signal: AbortSignal.timeout(10_000),
     });

@@ -1,5 +1,5 @@
 import type { ApiErrorResponse } from "@/api/types";
-import { AUTH_ENDPOINTS } from "@/lib/constants";
+import { AUTH_ENDPOINTS, CLIENT_HEADER, CLIENT_HEADER_VALUE } from "@/lib/constants";
 import { ApiError, isOffline, NetworkError } from "@/lib/errors";
 import {
   accessTokenStorage,
@@ -43,7 +43,7 @@ async function refreshAccessToken(): Promise<string | null> {
   try {
     const res = await fetch(AUTH_ENDPOINTS.deviceRefresh, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", [CLIENT_HEADER]: CLIENT_HEADER_VALUE },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
@@ -87,6 +87,9 @@ export async function request<T>(
       }
     }
   }
+
+  // Client attribution header (all request() URLs point at the spoo.me backend)
+  headers[CLIENT_HEADER] = CLIENT_HEADER_VALUE;
 
   // Auth header
   if (!noAuth) {
