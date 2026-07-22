@@ -5,6 +5,8 @@ import {
   ACCESS_TOKEN_TTL_MS,
   API_BASE_URL,
   AUTH_ENDPOINTS,
+  CLIENT_HEADER,
+  CLIENT_HEADER_VALUE,
   HISTORY_MAX_ITEMS,
   QR_BRAND,
   TOKEN_REFRESH_BUFFER_MS,
@@ -139,7 +141,7 @@ async function handleTokenRefresh(): Promise<void> {
 async function exchangeDeviceCode(code: string): Promise<void> {
   const res = await fetch(AUTH_ENDPOINTS.deviceToken, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", [CLIENT_HEADER]: CLIENT_HEADER_VALUE },
     body: JSON.stringify({ code }),
   });
 

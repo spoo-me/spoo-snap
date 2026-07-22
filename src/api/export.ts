@@ -1,5 +1,5 @@
 import type { ExportQuery } from "@/api/types";
-import { API_V1 } from "@/lib/constants";
+import { API_V1, CLIENT_HEADER, CLIENT_HEADER_VALUE } from "@/lib/constants";
 import { isOffline, NetworkError } from "@/lib/errors";
 import { accessTokenStorage, apiKeyStorage, authModeStorage } from "@/lib/storage";
 
@@ -17,7 +17,7 @@ export async function exportStats(query: ExportQuery): Promise<Blob> {
     }
   }
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { [CLIENT_HEADER]: CLIENT_HEADER_VALUE };
   const mode = await authModeStorage.getValue();
   if (mode === "apikey") {
     const key = await apiKeyStorage.getValue();

@@ -1,6 +1,6 @@
 import { request } from "@/api/client";
 import type { StatsQuery, StatsResponse } from "@/api/types";
-import { API_BASE_URL, API_V1 } from "@/lib/constants";
+import { API_BASE_URL, API_V1, CLIENT_HEADER, CLIENT_HEADER_VALUE } from "@/lib/constants";
 import { ApiError } from "@/lib/errors";
 import { statsResponseSchema } from "@/schemas/api";
 
@@ -50,7 +50,7 @@ export interface V0StatsResponse {
  */
 export async function getStatsV0(shortCode: string, password?: string): Promise<V0StatsResponse> {
   const url = `${API_BASE_URL}/stats/${shortCode}`;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { [CLIENT_HEADER]: CLIENT_HEADER_VALUE };
 
   const body = password ? new URLSearchParams({ password }) : undefined;
   if (body) {
