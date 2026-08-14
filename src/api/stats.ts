@@ -1,13 +1,28 @@
 import { request } from "@/api/client";
-import type { StatsQuery, StatsResponse } from "@/api/types";
-import { API_BASE_URL, API_V1, CLIENT_HEADER, CLIENT_HEADER_VALUE } from "@/lib/constants";
+import type { PublicStatsQuery, StatsQuery, StatsResponse } from "@/api/types";
+import { getUrlByAddress } from "@/api/urls";
+import { API_BASE_URL, API_V1 } from "@/lib/constants";
 import { ApiError } from "@/lib/errors";
-import { statsResponseSchema } from "@/schemas/api";
+import { authModeStorage } from "@/lib/storage";
+import { publicStatsResponseSchema, statsResponseSchema } from "@/schemas/api";
 
 /**
- * Get stats via v1 API (works for v2/new URLs only).
+ * Thrown when per-link stats exist behind a gate we can't pass:
+ * the code is unknown, the owner made stats private (404), or the
+ * link is password protected (401 password_required). The UI treats
+ * all of these as a single "stats unavailable" state.
  */
-export function getStatsV1(query: StatsQuery = {}): Promise<StatsResponse> {
+export class StatsUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StatsUnavailableError";
+  }
+}
+
+/**
+ * Account-wide analytics. GET /api/v1/stats — auth required.
+ */
+export function getAccountStats(query: StatsQuery = {}): Promise<StatsResponse> {
   return request(
     `${API_V1}/stats`,
     { params: query as Record<string, string | number | boolean | undefined> },
@@ -16,131 +31,80 @@ export function getStatsV1(query: StatsQuery = {}): Promise<StatsResponse> {
 }
 
 /**
- * V0 stats response shape (legacy embedded analytics).
+ * Stats for one link the signed-in user owns.
+ * GET /api/v1/stats/links/{urlId} — auth required, 404 for foreign/unknown ids.
  */
-export interface V0StatsResponse {
-  _id: string;
-  short_code: string;
-  url: string;
-  "total-clicks": number;
-  total_unique_clicks: number;
-  "creation-date": string;
-  "last-click": string | null;
-  "last-click-browser": string | null;
-  "last-click-os": string | null;
-  average_daily_clicks: number;
-  average_weekly_clicks: number;
-  average_monthly_clicks: number;
-  average_redirection_time: number;
-  counter: Record<string, number>;
-  unique_counter: Record<string, number>;
-  browser: Record<string, number>;
-  unique_browser: Record<string, number>;
-  os_name: Record<string, number>;
-  unique_os_name: Record<string, number>;
-  country: Record<string, number>;
-  unique_country: Record<string, number>;
-  referrer: Record<string, number>;
-  unique_referrer: Record<string, number>;
+export function getLinkStats(urlId: string, query: StatsQuery = {}): Promise<StatsResponse> {
+  return request(
+    `${API_V1}/stats/links/${urlId}`,
+    { params: query as Record<string, string | number | boolean | undefined> },
+    statsResponseSchema,
+  );
 }
 
 /**
- * Get stats via v0 API (works for legacy/v0 URLs).
- * POST /stats/{shortCode} with optional password.
+ * Public per-link stats. GET /api/v1/public/stats/{shortCode} — no auth.
+ * The envelope is {generation, link, stats}; the inner stats object is the
+ * same wire shape as the authed endpoints, so we unwrap it here.
  */
-export async function getStatsV0(shortCode: string, password?: string): Promise<V0StatsResponse> {
-  const url = `${API_BASE_URL}/stats/${shortCode}`;
-  const headers: Record<string, string> = { [CLIENT_HEADER]: CLIENT_HEADER_VALUE };
-
-  const body = password ? new URLSearchParams({ password }) : undefined;
-  if (body) {
-    headers["Content-Type"] = "application/x-www-form-urlencoded";
-  }
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers,
-    body: body?.toString(),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Stats request failed: ${res.statusText}`);
-  }
-
-  return res.json();
+export async function getPublicStats(
+  shortCode: string,
+  query: PublicStatsQuery = {},
+): Promise<StatsResponse> {
+  const { stats } = await request(
+    `${API_V1}/public/stats/${encodeURIComponent(shortCode)}`,
+    {
+      params: query as Record<string, string | number | boolean | undefined>,
+      noAuth: true,
+    },
+    publicStatsResponseSchema,
+  );
+  return stats;
 }
 
 /**
- * Convert v0 stats to the same shape the UI expects.
+ * Get stats for a short code, picking the right surface at runtime:
+ *
+ * 1. Signed in → resolve the code to an owned url id via
+ *    GET /urls/{domain}/{alias} and use the per-link authed endpoint.
+ * 2. Resolution 404s (not our link) or we're anonymous → fall back to
+ *    the public stats endpoint.
+ *
+ * Public 404 (unknown code or private stats) and 401 (password
+ * protected) both surface as StatsUnavailableError.
  */
-function v0ToStatsResponse(v0: V0StatsResponse): StatsResponse {
-  // Convert Record<string, number> breakdowns to array format
-  const toArray = (obj: Record<string, number>, nameKey: string) =>
-    Object.entries(obj)
-      .sort(([, a], [, b]) => b - a)
-      .map(([name, clicks]) => ({ [nameKey]: name, clicks }));
+export async function getUrlStats(
+  shortCode: string,
+  query: StatsQuery = {},
+): Promise<StatsResponse> {
+  const mode = await authModeStorage.getValue();
 
-  return {
-    scope: "anon",
-    filters: {},
-    group_by: [],
-    timezone: "UTC",
-    time_range: { start_date: v0["creation-date"], end_date: null },
-    summary: {
-      total_clicks: v0["total-clicks"],
-      unique_clicks: v0.total_unique_clicks,
-      first_click: v0["creation-date"],
-      last_click: v0["last-click"],
-      avg_redirection_time: v0.average_redirection_time,
-    },
-    metrics: {
-      browser: toArray(v0.browser, "browser"),
-      os: toArray(v0.os_name, "os"),
-      country: toArray(v0.country, "country"),
-      referrer: toArray(v0.referrer, "referrer"),
-      clicks_over_time: Object.entries(v0.counter)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, clicks]) => ({ date, clicks })),
-    },
-    computed_metrics: {
-      // Match v1 format: rates are already percentages (e.g. 6.25 = 6.25%)
-      unique_click_rate:
-        v0["total-clicks"] > 0
-          ? Math.round((v0.total_unique_clicks / v0["total-clicks"]) * 10000) / 100
-          : 0,
-      repeat_click_rate:
-        v0["total-clicks"] > 0
-          ? Math.round(
-              ((v0["total-clicks"] - v0.total_unique_clicks) / v0["total-clicks"]) * 10000,
-            ) / 100
-          : 0,
-      average_clicks_per_visitor:
-        v0.total_unique_clicks > 0
-          ? Math.round((v0["total-clicks"] / v0.total_unique_clicks) * 100) / 100
-          : 0,
-    },
-  };
-}
-
-/**
- * Get stats with automatic v1 -> v0 fallback.
- * Tries v1 API first (for v2 URLs), falls back to v0 (for legacy URLs).
- */
-export async function getStats(query: StatsQuery = {}): Promise<StatsResponse> {
-  // If querying a specific short code, use scope=anon, try v1 first, fall back to v0
-  if (query.short_code) {
+  if (mode === "jwt" || mode === "apikey") {
     try {
-      return await getStatsV1({ ...query, scope: query.scope ?? "anon" });
+      const url = await getUrlByAddress(new URL(API_BASE_URL).hostname, shortCode);
+      return await getLinkStats(url.id, query);
     } catch (e) {
-      // v1 404 means it's a legacy URL — fall back to v0 endpoint
-      if (e instanceof ApiError && e.isNotFound) {
-        const v0 = await getStatsV0(query.short_code);
-        return v0ToStatsResponse(v0);
-      }
-      throw e;
+      // 404 means the link isn't in this account (foreign or unknown) —
+      // the public surface is the only remaining read path.
+      if (!(e instanceof ApiError && e.isNotFound)) throw e;
     }
   }
 
-  // No specific short code — use v1 API only
-  return getStatsV1(query);
+  try {
+    return await getPublicStats(shortCode, {
+      start_date: query.start_date,
+      end_date: query.end_date,
+      timezone: query.timezone,
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.isUnauthorized) {
+      throw new StatsUnavailableError("This link's stats are password protected.");
+    }
+    if (e instanceof ApiError && e.isNotFound) {
+      throw new StatsUnavailableError(
+        "Stats aren't available for this link. It may not exist, or its owner made stats private.",
+      );
+    }
+    throw e;
+  }
 }

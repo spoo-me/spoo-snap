@@ -5,12 +5,14 @@ import type {
   UpdateUrlRequest,
   UpdateUrlResponse,
   UpdateUrlStatusRequest,
+  UrlListItem,
   UrlListResponse,
 } from "@/api/types";
 import { API_V1 } from "@/lib/constants";
 import {
   deleteUrlResponseSchema,
   updateUrlResponseSchema,
+  urlListItemSchema,
   urlListResponseSchema,
 } from "@/schemas/api";
 
@@ -19,6 +21,18 @@ export function listUrls(query: ListUrlsQuery = {}): Promise<UrlListResponse> {
     `${API_V1}/urls`,
     { params: query as Record<string, string | number | boolean | undefined> },
     urlListResponseSchema,
+  );
+}
+
+/**
+ * Resolve an owned URL by its natural key (domain + alias).
+ * 404 covers both unknown aliases and links owned by someone else.
+ */
+export function getUrlByAddress(domain: string, alias: string): Promise<UrlListItem> {
+  return request(
+    `${API_V1}/urls/${encodeURIComponent(domain)}/${encodeURIComponent(alias)}`,
+    {},
+    urlListItemSchema,
   );
 }
 

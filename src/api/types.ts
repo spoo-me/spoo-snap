@@ -184,9 +184,11 @@ export interface ListUrlsQuery {
 
 // ── Stats ────────────────────────────────────────────────────
 
+/**
+ * Query for the authed stats endpoints: GET /api/v1/stats (account)
+ * and GET /api/v1/stats/links/{url_id} (one owned link).
+ */
 export interface StatsQuery {
-  scope?: "all" | "anon";
-  short_code?: string;
   start_date?: string;
   end_date?: string;
   group_by?: string;
@@ -204,12 +206,23 @@ export interface ExportQuery extends StatsQuery {
   format: "csv" | "xlsx" | "json" | "xml";
 }
 
+/**
+ * Query for GET /api/v1/public/stats/{short_code} — the public endpoint
+ * takes a time window only (no grouping/metric selection).
+ */
+export interface PublicStatsQuery {
+  start_date?: string;
+  end_date?: string;
+  timezone?: string;
+}
+
 export interface StatsSummary {
   total_clicks: number;
   unique_clicks: number;
   first_click: string | null;
   last_click: string | null;
-  avg_redirection_time: number;
+  // null = no measurement (e.g. zero clicks in range), never 0
+  avg_redirection_time: number | null;
 }
 
 export interface StatsTimeRange {
@@ -244,6 +257,17 @@ export interface StatsResponse {
   short_code?: string | null;
   time_bucket_info?: TimeBucketInfo | null;
   computed_metrics?: ComputedMetrics | null;
+}
+
+/**
+ * Envelope for GET /api/v1/public/stats/{short_code}. `link` is the
+ * frozen public-facts wire — kept loose since we only consume `stats`,
+ * which matches the authed stats wire.
+ */
+export interface PublicStatsResponse {
+  generation: string;
+  link: Record<string, unknown>;
+  stats: StatsResponse;
 }
 
 // ── API Keys ─────────────────────────────────────────────────

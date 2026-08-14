@@ -130,7 +130,8 @@ export const statsSummarySchema = z.object({
   unique_clicks: z.number(),
   first_click: z.string().nullable(),
   last_click: z.string().nullable(),
-  avg_redirection_time: z.number(),
+  // null = no measurement (e.g. zero clicks in range), never 0
+  avg_redirection_time: z.number().nullable(),
 });
 
 export const statsTimeRangeSchema = z.object({
@@ -165,6 +166,15 @@ export const statsResponseSchema = z.object({
   short_code: z.string().nullable().optional(),
   time_bucket_info: timeBucketInfoSchema.nullable().optional(),
   computed_metrics: computedMetricsSchema.nullable().optional(),
+});
+
+// GET /api/v1/public/stats/{short_code} — {generation, link, stats}.
+// `link` stays loose (frozen wire, unconsumed); `stats` is the same
+// shape as the authed stats endpoints.
+export const publicStatsResponseSchema = z.object({
+  generation: z.string(),
+  link: z.record(z.string(), z.unknown()),
+  stats: statsResponseSchema,
 });
 
 // ── API Keys ─────────────────────────────────────────────────
