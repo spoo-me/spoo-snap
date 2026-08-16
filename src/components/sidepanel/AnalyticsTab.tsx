@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { StatsUnavailableError } from "@/api/stats";
 import type { StatsResponse } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/chart";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useStats } from "@/hooks/use-stats";
+import { useAccountStats, useUrlStats } from "@/hooks/use-stats";
 import { extractShortCode } from "@/lib/url-utils";
 import { useAuthStore } from "@/stores/auth";
 
@@ -61,8 +62,7 @@ export function AnalyticsTab() {
 // ── Account-Level Analytics ──────────────────────────────────
 
 function AccountAnalytics() {
-  const { data, isLoading, error } = useStats({
-    scope: "all",
+  const { data, isLoading, error } = useAccountStats({
     group_by: "time,browser,os,country,referrer,short_code",
     metrics: "clicks,unique_clicks",
   });
@@ -80,14 +80,11 @@ function UrlAnalytics() {
   const [shortCode, setShortCode] = useState("");
   const [activeCode, setActiveCode] = useState<string | undefined>();
 
-  const { data, isLoading, error } = useStats(
-    activeCode
-      ? {
-          short_code: activeCode,
-          group_by: "time,browser,os,country,referrer",
-          metrics: "clicks,unique_clicks",
-        }
-      : {},
+  // Grouping/metric selection only applies on the authed per-link path;
+  // the public endpoint returns its fixed dimension set regardless.
+  const { data, isLoading, error } = useUrlStats(
+    activeCode ?? "",
+    { group_by: "time,browser,os,country,referrer", metrics: "clicks,unique_clicks" },
     !!activeCode,
   );
 
@@ -119,7 +116,12 @@ function UrlAnalytics() {
         </Button>
       </form>
       {isLoading && <SkeletonStats />}
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error &&
+        (error instanceof StatsUnavailableError ? (
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        ) : (
+          <p className="text-sm text-destructive">{error.message}</p>
+        ))}
       {data && <StatsDisplay data={data} title={`spoo.me/${activeCode}`} />}
       {!activeCode && !isLoading && (
         <div className="py-8 text-center">
