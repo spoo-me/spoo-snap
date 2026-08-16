@@ -59,3 +59,22 @@ export const shortenQueueStorage = storage.defineItem<QueuedShorten[]>("local:sh
 export const deviceAuthStateStorage = storage.defineItem<string | null>("local:deviceAuthState", {
   fallback: null,
 });
+
+/** PKCE code verifier for the in-flight device auth flow, sent at token exchange. */
+export const deviceAuthVerifierStorage = storage.defineItem<string | null>(
+  "local:deviceAuthVerifier",
+  { fallback: null },
+);
+
+/**
+ * Clear a JWT session and return to anonymous. Used when a device grant is
+ * revoked or its refresh token has expired (a definitive 401 on refresh).
+ */
+export async function clearJwtSession(): Promise<void> {
+  await Promise.all([
+    accessTokenStorage.setValue(null),
+    refreshTokenStorage.setValue(null),
+    userProfileStorage.setValue(null),
+  ]);
+  await authModeStorage.setValue("anonymous");
+}

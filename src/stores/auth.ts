@@ -67,11 +67,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         if (restored) {
           set({ mode: "jwt", user: restored, isLoading: false });
         } else {
-          await Promise.all([
-            accessTokenStorage.setValue(null),
-            refreshTokenStorage.setValue(null),
-            authModeStorage.setValue("anonymous"),
-          ]);
+          // A revoked grant / expired refresh token is cleared inside
+          // refreshAccessToken (401). A transient failure leaves the stored
+          // session untouched so a later launch can retry; we fall back to
+          // anonymous in memory for now without wiping the stored session.
           set({ mode: "anonymous", user: null, isLoading: false });
         }
       } else {

@@ -272,20 +272,6 @@ export interface PublicStatsResponse {
 
 // ── API Keys ─────────────────────────────────────────────────
 
-export type ApiKeyScope =
-  | "shorten:create"
-  | "urls:manage"
-  | "urls:read"
-  | "stats:read"
-  | "admin:all";
-
-export interface CreateApiKeyRequest {
-  name: string;
-  description?: string;
-  scopes: ApiKeyScope[];
-  expires_at?: string | number;
-}
-
 export interface ApiKeyResponse {
   id: string;
   name: string;
@@ -295,10 +281,6 @@ export interface ApiKeyResponse {
   expires_at: number | null;
   revoked: boolean;
   token_prefix: string | null;
-}
-
-export interface ApiKeyCreatedResponse extends ApiKeyResponse {
-  token: string;
 }
 
 export interface ApiKeysListResponse {

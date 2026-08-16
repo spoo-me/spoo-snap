@@ -5,6 +5,7 @@ import {
   accessTokenStorage,
   apiKeyStorage,
   authModeStorage,
+  clearJwtSession,
   refreshTokenStorage,
 } from "@/lib/storage";
 import { refreshResponseSchema } from "@/schemas/api";
@@ -47,11 +48,14 @@ async function refreshAccessToken(): Promise<string | null> {
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
+    if (res.status === 401) {
+      // Grant revoked or refresh token expired — clear the session.
+      await clearJwtSession();
+      return null;
+    }
+
     if (!res.ok) {
-      // Refresh failed — clear auth state
-      await accessTokenStorage.setValue(null);
-      await refreshTokenStorage.setValue(null);
-      await authModeStorage.setValue("anonymous");
+      // Transient failure (server/network) — keep tokens for a later retry.
       return null;
     }
 

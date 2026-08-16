@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AUTH_ENDPOINTS } from "@/lib/constants";
-import { deviceAuthStateStorage } from "@/lib/storage";
+import { deriveCodeChallenge, generateCodeVerifier } from "@/lib/pkce";
+import { deviceAuthStateStorage, deviceAuthVerifierStorage } from "@/lib/storage";
 import { useAuthStore } from "@/stores/auth";
 
 /**
@@ -76,13 +77,20 @@ function WebLoginForm() {
     setPending(true);
     setError("");
     const state = crypto.randomUUID();
+    const verifier = generateCodeVerifier();
+    const challenge = await deriveCodeChallenge(verifier);
     await deviceAuthStateStorage.setValue(state);
+    await deviceAuthVerifierStorage.setValue(verifier);
     try {
-      await browser.tabs.create({
-        url: `${AUTH_ENDPOINTS.deviceLogin}?app_id=spoo-snap&state=${state}`,
-      });
+      const url = new URL(AUTH_ENDPOINTS.deviceLogin);
+      url.searchParams.set("app_id", "spoo-snap");
+      url.searchParams.set("state", state);
+      url.searchParams.set("code_challenge", challenge);
+      url.searchParams.set("code_challenge_method", "S256");
+      await browser.tabs.create({ url: url.toString() });
     } catch {
       await deviceAuthStateStorage.setValue(null);
+      await deviceAuthVerifierStorage.setValue(null);
       setPending(false);
       setError("Failed to open sign in page");
     }
@@ -102,6 +110,7 @@ function WebLoginForm() {
           onClick={() => {
             setPending(false);
             deviceAuthStateStorage.setValue(null);
+            deviceAuthVerifierStorage.setValue(null);
           }}
         >
           Cancel

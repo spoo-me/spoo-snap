@@ -1,13 +1,10 @@
-import { Copy, Key, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
-import type { ApiKeyScope } from "@/api/types";
+import { ExternalLink, Key, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useLogout } from "@/hooks/use-auth";
-import { useApiKeys, useCreateApiKey, useDeleteApiKey } from "@/hooks/use-keys";
+import { useApiKeys, useDeleteApiKey } from "@/hooks/use-keys";
 import { useAuthStore } from "@/stores/auth";
 
 export function AccountTab() {
@@ -107,24 +104,7 @@ function ProfileSection({
 
 function ApiKeysSection() {
   const { data, isLoading, error } = useApiKeys();
-  const createKey = useCreateApiKey();
   const deleteKey = useDeleteApiKey();
-  const [showCreate, setShowCreate] = useState(false);
-  const [newKeyName, setNewKeyName] = useState("");
-  const [newKeyToken, setNewKeyToken] = useState<string | null>(null);
-
-  const handleCreate = () => {
-    const scopes: ApiKeyScope[] = ["shorten:create", "urls:read", "stats:read"];
-    createKey.mutate(
-      { name: newKeyName, scopes },
-      {
-        onSuccess: (data) => {
-          setNewKeyToken(data.token);
-          setNewKeyName("");
-        },
-      },
-    );
-  };
 
   return (
     <div className="space-y-3">
@@ -132,75 +112,33 @@ function ApiKeysSection() {
         <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           API Keys
         </h3>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={() => {
-            setShowCreate(!showCreate);
-            setNewKeyToken(null);
-          }}
+        <a
+          href="https://spoo.me/dashboard/keys"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-[11px] text-primary hover:underline"
         >
-          <Plus className="size-3.5" />
-        </Button>
+          <ExternalLink className="size-3" />
+          New key
+        </a>
       </div>
-
-      {showCreate && (
-        <div className="space-y-2 rounded-lg border bg-card p-3">
-          {newKeyToken ? (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-green-600 dark:text-green-400">
-                Key created! Copy it now — you won't see it again.
-              </p>
-              <div className="flex gap-2">
-                <code className="flex-1 rounded bg-muted px-2 py-1 text-xs font-mono truncate">
-                  {newKeyToken}
-                </code>
-                <Button
-                  variant="outline"
-                  size="icon-xs"
-                  onClick={() => navigator.clipboard.writeText(newKeyToken)}
-                >
-                  <Copy className="size-3" />
-                </Button>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full"
-                onClick={() => {
-                  setShowCreate(false);
-                  setNewKeyToken(null);
-                }}
-              >
-                Done
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Input
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                placeholder="Key name (e.g. My Extension)"
-                className="h-8 text-sm"
-              />
-              <Button
-                size="sm"
-                className="w-full"
-                onClick={handleCreate}
-                disabled={!newKeyName.trim() || createKey.isPending}
-              >
-                {createKey.isPending ? "Creating..." : "Create Key"}
-              </Button>
-            </>
-          )}
-        </div>
-      )}
 
       {isLoading && <div className="h-16 rounded-lg bg-muted/30 animate-pulse" />}
       {error && <p className="text-xs text-destructive">{error.message}</p>}
 
-      {data && data.keys.length === 0 && !showCreate && (
-        <p className="text-xs text-muted-foreground py-4 text-center">No API keys</p>
+      {data && data.keys.length === 0 && (
+        <p className="text-xs text-muted-foreground py-4 text-center">
+          No API keys. Create one on your{" "}
+          <a
+            href="https://spoo.me/dashboard/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            dashboard
+          </a>
+          .
+        </p>
       )}
 
       {data?.keys.map((key) => (

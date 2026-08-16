@@ -1,20 +1,10 @@
 import { request } from "@/api/client";
-import type {
-  ApiKeyActionResponse,
-  ApiKeyCreatedResponse,
-  ApiKeysListResponse,
-  CreateApiKeyRequest,
-} from "@/api/types";
+import type { ApiKeyActionResponse, ApiKeysListResponse } from "@/api/types";
 import { API_V1 } from "@/lib/constants";
-import {
-  apiKeyActionResponseSchema,
-  apiKeyCreatedResponseSchema,
-  apiKeysListResponseSchema,
-} from "@/schemas/api";
+import { apiKeyActionResponseSchema, apiKeysListResponseSchema } from "@/schemas/api";
 
-export function createApiKey(data: CreateApiKeyRequest): Promise<ApiKeyCreatedResponse> {
-  return request(`${API_V1}/keys`, { method: "POST", body: data }, apiKeyCreatedResponseSchema);
-}
+// API key creation is first-party (dashboard) only. Connected-app tokens can
+// list and revoke keys but cannot mint them, so no createApiKey is exposed here.
 
 export function listApiKeys(): Promise<ApiKeysListResponse> {
   return request(`${API_V1}/keys`, {}, apiKeysListResponseSchema);
