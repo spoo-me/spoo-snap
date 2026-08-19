@@ -206,7 +206,11 @@ async function getActiveTabId(): Promise<number | undefined> {
   return tab?.id;
 }
 
-async function processUrl(url: string, tabId?: number): Promise<void> {
+// What became of one shorten attempt: "queued" means the offline path
+// already put the URL back in the queue, "failed" means the caller owns it.
+type ProcessOutcome = "success" | "queued" | "failed";
+
+async function processUrl(url: string, tabId?: number): Promise<ProcessOutcome> {
   const normalized = normalizeUrl(url);
   const settings = await settingsStorage.getValue();
 
@@ -242,6 +246,7 @@ async function processUrl(url: string, tabId?: number): Promise<void> {
         );
       }
     }
+    return "success";
   } catch (e) {
     // If offline, queue the request (connection failures surface as the
     // SDK's APIConnectionError, but navigator.onLine is the gate we trust)
@@ -250,9 +255,10 @@ async function processUrl(url: string, tabId?: number): Promise<void> {
       queue.push({ url: normalized, timestamp: Date.now() });
       await shortenQueueStorage.setValue(queue);
       armQueueAlarm();
-      return;
+      return "queued";
     }
     console.error("Failed to shorten URL:", e);
+    return "failed";
   }
 }
 
@@ -260,14 +266,20 @@ async function processOfflineQueue(): Promise<void> {
   const queue = await shortenQueueStorage.getValue();
   if (queue.length === 0) return;
 
+  // Claim the queue so a concurrent drain cannot double-process; anything
+  // that still fails is put back below, so no entry is ever dropped.
   await shortenQueueStorage.setValue([]);
 
+  const failed: typeof queue = [];
   for (const item of queue) {
-    try {
-      await processUrl(item.url);
-    } catch {
-      // Items lost if still failing
-    }
+    const outcome = await processUrl(item.url);
+    // "queued" items re-added themselves inside processUrl's offline path.
+    if (outcome === "failed") failed.push(item);
+  }
+  if (failed.length > 0) {
+    const current = await shortenQueueStorage.getValue();
+    await shortenQueueStorage.setValue([...current, ...failed]);
+    armQueueAlarm();
   }
 }
 
