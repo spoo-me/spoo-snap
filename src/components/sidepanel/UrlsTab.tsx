@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { UrlListItem } from "@/api/types";
+import type { UrlItem } from "@/api/urls";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,9 +33,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDeleteUrl, useUpdateUrlStatus, useUrls } from "@/hooks/use-urls";
+import { userMessage } from "@/lib/errors";
 import { smartDate } from "@/lib/format-date";
 
 type SortOption = "created_at" | "total_clicks" | "last_click";
+
+const PAGE_SIZE = 15;
 
 const STATUS_VARIANT: Record<string, "destructive" | "warning" | "secondary"> = {
   BLOCKED: "destructive",
@@ -43,7 +46,7 @@ const STATUS_VARIANT: Record<string, "destructive" | "warning" | "secondary"> = 
   INACTIVE: "secondary",
 };
 
-function UrlRow({ item, sortBy }: { item: UrlListItem; sortBy: SortOption }) {
+function UrlRow({ item, sortBy }: { item: UrlItem; sortBy: SortOption }) {
   const [copied, setCopied] = useState(false);
   const deleteUrl = useDeleteUrl();
   const toggleStatus = useUpdateUrlStatus();
@@ -57,8 +60,8 @@ function UrlRow({ item, sortBy }: { item: UrlListItem; sortBy: SortOption }) {
   };
 
   const handleToggleStatus = () => {
-    const newStatus = item.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    toggleStatus.mutate({ urlId: item.id, data: { status: newStatus } });
+    const newStatus = item.status === "ACTIVE" ? ("INACTIVE" as const) : ("ACTIVE" as const);
+    toggleStatus.mutate({ urlId: item.id, status: newStatus });
   };
 
   const handleDelete = () => deleteUrl.mutate(item.id);
@@ -171,15 +174,12 @@ export function UrlsTab() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // filter param must be JSON-encoded UrlFilter: {"search": "..."}
-  const filterParam = debouncedSearch ? JSON.stringify({ search: debouncedSearch }) : undefined;
-
   const { data, isLoading, error } = useUrls({
     page,
-    pageSize: 15,
+    pageSize: PAGE_SIZE,
     sortBy,
     sortOrder: "descending",
-    filter: filterParam,
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
   });
 
   return (
@@ -216,7 +216,7 @@ export function UrlsTab() {
         </div>
       )}
 
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error && <p className="text-sm text-destructive">{userMessage(error)}</p>}
 
       {data && (
         <>
@@ -231,10 +231,10 @@ export function UrlsTab() {
           )}
 
           {/* Pagination */}
-          {data.total > 15 && (
+          {data.total > PAGE_SIZE && (
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-muted-foreground">
-                Page {data.page} of {Math.ceil(data.total / data.pageSize)}
+                Page {data.page} of {Math.ceil(data.total / PAGE_SIZE)}
               </span>
               <div className="flex gap-1">
                 <Button

@@ -1,5 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as authApi from "@/api/auth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/auth";
 
 export function useLogout() {
@@ -9,15 +8,5 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => clearAuth(),
     onSettled: () => queryClient.clear(),
-  });
-}
-
-export function useMe(enabled = true) {
-  const { mode } = useAuthStore();
-
-  return useQuery({
-    queryKey: ["me"],
-    queryFn: authApi.getMe,
-    enabled: enabled && mode !== "anonymous",
   });
 }

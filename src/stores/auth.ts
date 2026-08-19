@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import { getMe, refreshAccessToken } from "@/api/auth";
 import type { AuthMode, UserProfile } from "@/api/types";
+import { sendMessage } from "@/lib/messaging";
+import { withSpoo } from "@/lib/spoo";
 import {
   accessTokenStorage,
   apiKeyStorage,
@@ -17,30 +18,26 @@ interface AuthState {
   /** Initialize auth state from storage. Returns cleanup function to unsubscribe watchers. */
   initialize: () => Promise<() => void>;
 
-  /** Set JWT auth after login */
-  setJwtAuth: (accessToken: string, refreshToken: string, user: UserProfile) => Promise<void>;
-
   /** Set API key auth */
   setApiKeyAuth: (apiKey: string) => Promise<void>;
 
   /** Clear auth and go anonymous */
   clearAuth: () => Promise<void>;
-
-  /** Update user profile */
-  setUser: (user: UserProfile) => Promise<void>;
 }
 
 /**
  * Attempt to silently restore a JWT session after browser restart.
  * Session-scoped storage (access token, profile) is cleared on restart,
- * but the refresh token persists in local storage.
+ * but the refresh token persists in local storage. The background service
+ * worker owns all token refreshes, so we ask it to refresh and then load
+ * the profile through the SDK.
  */
 async function restoreJwtSession(): Promise<UserProfile | null> {
   try {
-    const refreshed = await refreshAccessToken();
-    if (!refreshed) return null;
+    const res = await sendMessage<{ refreshed?: boolean }>({ type: "refresh-token" });
+    if (res?.refreshed !== true) return null;
 
-    const { user } = await getMe();
+    const user = await withSpoo((spoo) => spoo.auth.me());
     await userProfileStorage.setValue(user);
     return user;
   } catch {
@@ -67,10 +64,11 @@ export const useAuthStore = create<AuthState>((set) => ({
         if (restored) {
           set({ mode: "jwt", user: restored, isLoading: false });
         } else {
-          // A revoked grant / expired refresh token is cleared inside
-          // refreshAccessToken (401). A transient failure leaves the stored
-          // session untouched so a later launch can retry; we fall back to
-          // anonymous in memory for now without wiping the stored session.
+          // A revoked grant / expired refresh token is cleared by the
+          // background (definitive 401 on refresh). A transient failure
+          // leaves the stored session untouched so a later launch can
+          // retry; we fall back to anonymous in memory for now without
+          // wiping the stored session.
           set({ mode: "anonymous", user: null, isLoading: false });
         }
       } else {
@@ -93,17 +91,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     return unwatch;
   },
 
-  setJwtAuth: async (accessToken, refreshToken, user) => {
-    await Promise.all([
-      accessTokenStorage.setValue(accessToken),
-      refreshTokenStorage.setValue(refreshToken),
-      userProfileStorage.setValue(user),
-      apiKeyStorage.setValue(null),
-    ]);
-    await authModeStorage.setValue("jwt");
-    set({ mode: "jwt", user });
-  },
-
   setApiKeyAuth: async (apiKey) => {
     await Promise.all([
       apiKeyStorage.setValue(apiKey),
@@ -124,10 +111,5 @@ export const useAuthStore = create<AuthState>((set) => ({
     ]);
     await authModeStorage.setValue("anonymous");
     set({ mode: "anonymous", user: null });
-  },
-
-  setUser: async (user) => {
-    await userProfileStorage.setValue(user);
-    set({ user });
   },
 }));

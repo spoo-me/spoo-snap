@@ -13,8 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { StatsUnavailableError } from "@/api/stats";
-import type { StatsResponse } from "@/api/types";
+import { type StatsData, StatsUnavailableError } from "@/api/stats";
 import { Button } from "@/components/ui/button";
 import {
   type ChartConfig,
@@ -25,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccountStats, useUrlStats } from "@/hooks/use-stats";
+import { userMessage } from "@/lib/errors";
 import { extractShortCode } from "@/lib/url-utils";
 import { useAuthStore } from "@/stores/auth";
 
@@ -63,12 +63,12 @@ export function AnalyticsTab() {
 
 function AccountAnalytics() {
   const { data, isLoading, error } = useAccountStats({
-    group_by: "time,browser,os,country,referrer,short_code",
-    metrics: "clicks,unique_clicks",
+    groupBy: ["time", "browser", "os", "country", "referrer", "short_code"],
+    metrics: ["clicks", "unique_clicks"],
   });
 
   if (isLoading) return <SkeletonStats />;
-  if (error) return <p className="text-sm text-destructive">{error.message}</p>;
+  if (error) return <p className="text-sm text-destructive">{userMessage(error)}</p>;
   if (!data) return null;
 
   return <StatsDisplay data={data} title="Account Overview" />;
@@ -84,7 +84,10 @@ function UrlAnalytics() {
   // the public endpoint returns its fixed dimension set regardless.
   const { data, isLoading, error } = useUrlStats(
     activeCode ?? "",
-    { group_by: "time,browser,os,country,referrer", metrics: "clicks,unique_clicks" },
+    {
+      groupBy: ["time", "browser", "os", "country", "referrer"],
+      metrics: ["clicks", "unique_clicks"],
+    },
     !!activeCode,
   );
 
@@ -120,7 +123,7 @@ function UrlAnalytics() {
         (error instanceof StatsUnavailableError ? (
           <p className="text-sm text-muted-foreground">{error.message}</p>
         ) : (
-          <p className="text-sm text-destructive">{error.message}</p>
+          <p className="text-sm text-destructive">{userMessage(error)}</p>
         ))}
       {data && <StatsDisplay data={data} title={`spoo.me/${activeCode}`} />}
       {!activeCode && !isLoading && (
@@ -135,8 +138,8 @@ function UrlAnalytics() {
 
 // ── Stats Display ────────────────────────────────────────────
 
-function StatsDisplay({ data, title }: { data: StatsResponse; title: string }) {
-  const m = data.metrics;
+function StatsDisplay({ data, title }: { data: StatsData; title: string }) {
+  const m = data.metrics ?? {};
   const findMetric = (...candidates: string[]) => {
     for (const key of candidates) {
       if (m[key] && m[key].length > 0) return m[key];
