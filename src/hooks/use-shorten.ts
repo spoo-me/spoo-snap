@@ -1,13 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
+import type { CreatedLink, CreateLinkParams } from "spoo.me";
 import { gradientQrUrl } from "@/api/qr";
-import { shortenUrl } from "@/api/shorten";
-import type { CreateUrlRequest, UrlResponse } from "@/api/types";
 import { HISTORY_MAX_ITEMS, QR_BRAND } from "@/lib/constants";
+import { withSpoo } from "@/lib/spoo";
 import { historyStorage, settingsStorage } from "@/lib/storage";
 
 export function useShortenMutation() {
-  return useMutation<UrlResponse, Error, CreateUrlRequest>({
-    mutationFn: shortenUrl,
+  return useMutation<CreatedLink, Error, CreateLinkParams>({
+    mutationFn: (params) => withSpoo((spoo) => spoo.links.create(params)),
     onSuccess: async (data) => {
       const settings = await settingsStorage.getValue();
 

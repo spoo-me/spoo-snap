@@ -1,56 +1,12 @@
-import type { ApiErrorResponse } from "@/api/types";
+import {
+  APIConnectionError,
+  APIError,
+  AuthenticationError,
+  ForbiddenError,
+  RateLimitError,
+} from "spoo.me";
 
-export class ApiError extends Error {
-  readonly status: number;
-  readonly code: string;
-  readonly field?: string;
-  readonly details?: unknown;
-  readonly retryAfter?: number;
-
-  constructor(status: number, response: ApiErrorResponse, retryAfter?: number) {
-    super(response.error);
-    this.name = "ApiError";
-    this.status = status;
-    this.code = response.code;
-    this.field = response.field;
-    this.details = response.details;
-    this.retryAfter = retryAfter;
-  }
-
-  get isUnauthorized(): boolean {
-    return this.status === 401;
-  }
-
-  get isForbidden(): boolean {
-    return this.status === 403;
-  }
-
-  get isNotFound(): boolean {
-    return this.status === 404;
-  }
-
-  get isRateLimited(): boolean {
-    return this.status === 429;
-  }
-
-  get isValidationError(): boolean {
-    return this.status === 400;
-  }
-
-  get userMessage(): string {
-    if (this.isRateLimited) {
-      return "Too many requests. Please try again later.";
-    }
-    if (this.isUnauthorized) {
-      return "Please sign in to continue.";
-    }
-    if (this.isForbidden) {
-      return "You don't have permission to do that.";
-    }
-    return this.message;
-  }
-}
-
+/** Thrown by the offline gate before a request is even attempted. */
 export class NetworkError extends Error {
   constructor(message = "Network error. Check your connection.") {
     super(message);
@@ -60,4 +16,30 @@ export class NetworkError extends Error {
 
 export function isOffline(): boolean {
   return !navigator.onLine;
+}
+
+/**
+ * Human-readable message for surfacing an error in the UI. SDK errors carry
+ * wire-shaped messages ("404 not_found: ..."), which are not user copy.
+ */
+export function userMessage(err: unknown): string {
+  if (err instanceof RateLimitError) {
+    return "Too many requests. Please try again later.";
+  }
+  if (err instanceof AuthenticationError) {
+    return "Please sign in to continue.";
+  }
+  if (err instanceof ForbiddenError) {
+    return "You don't have permission to do that.";
+  }
+  if (err instanceof APIError) {
+    return err.body.error;
+  }
+  if (err instanceof APIConnectionError) {
+    return "Network error. Check your connection.";
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "Something went wrong.";
 }

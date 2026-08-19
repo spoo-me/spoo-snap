@@ -13,7 +13,20 @@ export interface DeviceAuthCodeMessage {
   code: string;
 }
 
-export type ExtensionMessage = ShortenUrlMessage | GetAuthStateMessage | DeviceAuthCodeMessage;
+/**
+ * Ask the background service worker to refresh the JWT session now.
+ * The background is the only context that ever refreshes tokens; UI
+ * contexts send this on a 401 and retry once. Responds {refreshed}.
+ */
+export interface RefreshTokenMessage {
+  type: "refresh-token";
+}
+
+export type ExtensionMessage =
+  | ShortenUrlMessage
+  | GetAuthStateMessage
+  | DeviceAuthCodeMessage
+  | RefreshTokenMessage;
 
 /**
  * Send a typed message to the background service worker.

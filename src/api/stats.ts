@@ -1,10 +1,16 @@
-import { request } from "@/api/client";
-import type { PublicStatsQuery, StatsQuery, StatsResponse } from "@/api/types";
-import { getUrlByAddress } from "@/api/urls";
-import { API_BASE_URL, API_V1 } from "@/lib/constants";
-import { ApiError } from "@/lib/errors";
+import {
+  type AggregateStatsParams,
+  type ApiSchema,
+  AuthenticationError,
+  NotFoundError,
+  type StatsDataPoint,
+  type StatsParams,
+} from "spoo.me";
+import { API_BASE_URL } from "@/lib/constants";
+import { withSpoo } from "@/lib/spoo";
 import { authModeStorage } from "@/lib/storage";
-import { publicStatsResponseSchema, statsResponseSchema } from "@/schemas/api";
+
+type Schemas = ApiSchema["schemas"];
 
 /**
  * Thrown when per-link stats exist behind a gate we can't pass:
@@ -20,46 +26,20 @@ export class StatsUnavailableError extends Error {
 }
 
 /**
+ * The slice of the stats wire the UI renders. The authed aggregate,
+ * authed per-link and public endpoints all satisfy it.
+ */
+export interface StatsData {
+  summary: Schemas["StatsSummary"];
+  metrics?: Record<string, StatsDataPoint[]>;
+  computed_metrics?: Schemas["ComputedMetrics"] | null;
+}
+
+/**
  * Account-wide analytics. GET /api/v1/stats — auth required.
  */
-export function getAccountStats(query: StatsQuery = {}): Promise<StatsResponse> {
-  return request(
-    `${API_V1}/stats`,
-    { params: query as Record<string, string | number | boolean | undefined> },
-    statsResponseSchema,
-  );
-}
-
-/**
- * Stats for one link the signed-in user owns.
- * GET /api/v1/stats/links/{urlId} — auth required, 404 for foreign/unknown ids.
- */
-export function getLinkStats(urlId: string, query: StatsQuery = {}): Promise<StatsResponse> {
-  return request(
-    `${API_V1}/stats/links/${urlId}`,
-    { params: query as Record<string, string | number | boolean | undefined> },
-    statsResponseSchema,
-  );
-}
-
-/**
- * Public per-link stats. GET /api/v1/public/stats/{shortCode} — no auth.
- * The envelope is {generation, link, stats}; the inner stats object is the
- * same wire shape as the authed endpoints, so we unwrap it here.
- */
-export async function getPublicStats(
-  shortCode: string,
-  query: PublicStatsQuery = {},
-): Promise<StatsResponse> {
-  const { stats } = await request(
-    `${API_V1}/public/stats/${encodeURIComponent(shortCode)}`,
-    {
-      params: query as Record<string, string | number | boolean | undefined>,
-      noAuth: true,
-    },
-    publicStatsResponseSchema,
-  );
-  return stats;
+export function getAccountStats(params: AggregateStatsParams = {}): Promise<StatsData> {
+  return withSpoo((spoo) => spoo.stats.get(params));
 }
 
 /**
@@ -73,34 +53,33 @@ export async function getPublicStats(
  * Public 404 (unknown code or private stats) and 401 (password
  * protected) both surface as StatsUnavailableError.
  */
-export async function getUrlStats(
-  shortCode: string,
-  query: StatsQuery = {},
-): Promise<StatsResponse> {
+export async function getUrlStats(shortCode: string, params: StatsParams = {}): Promise<StatsData> {
   const mode = await authModeStorage.getValue();
 
   if (mode === "jwt" || mode === "apikey") {
     try {
-      const url = await getUrlByAddress(new URL(API_BASE_URL).hostname, shortCode);
-      return await getLinkStats(url.id, query);
+      return await withSpoo(async (spoo) => {
+        const url = await spoo.links.getByAddress(new URL(API_BASE_URL).hostname, shortCode);
+        return spoo.stats.getForLink(url.id, params);
+      });
     } catch (e) {
       // 404 means the link isn't in this account (foreign or unknown) —
       // the public surface is the only remaining read path.
-      if (!(e instanceof ApiError && e.isNotFound)) throw e;
+      if (!(e instanceof NotFoundError)) throw e;
     }
   }
 
   try {
-    return await getPublicStats(shortCode, {
-      start_date: query.start_date,
-      end_date: query.end_date,
-      timezone: query.timezone,
-    });
+    // The public endpoint returns an {generation, link, stats} envelope;
+    // the inner stats object is the same wire shape as the authed
+    // endpoints, so we unwrap it here.
+    const envelope = await withSpoo((spoo) => spoo.public.stats(shortCode));
+    return envelope.stats as unknown as StatsData;
   } catch (e) {
-    if (e instanceof ApiError && e.isUnauthorized) {
+    if (e instanceof AuthenticationError) {
       throw new StatsUnavailableError("This link's stats are password protected.");
     }
-    if (e instanceof ApiError && e.isNotFound) {
+    if (e instanceof NotFoundError) {
       throw new StatsUnavailableError(
         "Stats aren't available for this link. It may not exist, or its owner made stats private.",
       );

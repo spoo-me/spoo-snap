@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useShortenMutation } from "@/hooks/use-shorten";
+import { userMessage } from "@/lib/errors";
 import { isAnyUrl, normalizeUrl } from "@/lib/url-utils";
 
 export function ShortenForm() {
@@ -63,7 +64,7 @@ export function ShortenForm() {
         </div>
       )}
 
-      {shorten.error && <p className="text-xs text-destructive">{shorten.error.message}</p>}
+      {shorten.error && <p className="text-xs text-destructive">{userMessage(shorten.error)}</p>}
     </div>
   );
 }

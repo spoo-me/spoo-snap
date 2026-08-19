@@ -1,5 +1,6 @@
 import { ExternalLink, Key, Loader2, LogIn } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
+import { generatePkcePair, generateState } from "spoo.me";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,8 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AUTH_ENDPOINTS } from "@/lib/constants";
-import { deriveCodeChallenge, generateCodeVerifier } from "@/lib/pkce";
+import { makeSpoo } from "@/lib/spoo";
 import { deviceAuthStateStorage, deviceAuthVerifierStorage } from "@/lib/storage";
 import { useAuthStore } from "@/stores/auth";
 
@@ -76,18 +76,19 @@ function WebLoginForm() {
     if (pending) return;
     setPending(true);
     setError("");
-    const state = crypto.randomUUID();
-    const verifier = generateCodeVerifier();
-    const challenge = await deriveCodeChallenge(verifier);
+    const state = generateState();
+    const { verifier, challenge } = await generatePkcePair();
     await deviceAuthStateStorage.setValue(state);
     await deviceAuthVerifierStorage.setValue(verifier);
     try {
-      const url = new URL(AUTH_ENDPOINTS.deviceLogin);
-      url.searchParams.set("app_id", "spoo-snap");
-      url.searchParams.set("state", state);
-      url.searchParams.set("code_challenge", challenge);
-      url.searchParams.set("code_challenge_method", "S256");
-      await browser.tabs.create({ url: url.toString() });
+      // No redirectUri: the app's registered default (the hosted callback
+      // page our content script watches) applies.
+      const url = makeSpoo().oauth.authorizationUrl({
+        appId: "spoo-snap",
+        state,
+        codeChallenge: challenge,
+      });
+      await browser.tabs.create({ url });
     } catch {
       await deviceAuthStateStorage.setValue(null);
       await deviceAuthVerifierStorage.setValue(null);
