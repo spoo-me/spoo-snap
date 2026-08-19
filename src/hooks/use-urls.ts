@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UrlId } from "spoo.me";
 import { deleteUrl, type ListUrlsParams, listUrls, updateUrlStatus } from "@/api/urls";
 
 const URLS_KEY = ["urls"] as const;
@@ -13,7 +14,7 @@ export function useUrls(params: ListUrlsParams = {}) {
 export function useUpdateUrlStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ urlId, status }: { urlId: string; status: "ACTIVE" | "INACTIVE" }) =>
+    mutationFn: ({ urlId, status }: { urlId: UrlId; status: "ACTIVE" | "INACTIVE" }) =>
       updateUrlStatus(urlId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: URLS_KEY });

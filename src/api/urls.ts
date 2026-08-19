@@ -1,4 +1,4 @@
-import type { Link } from "spoo.me";
+import type { Link, UrlId } from "spoo.me";
 import { withSpoo } from "@/lib/spoo";
 
 /**
@@ -7,7 +7,7 @@ import { withSpoo } from "@/lib/spoo";
  * strings, and TanStack Query caches should hold plain data).
  */
 export interface UrlItem {
-  id: string;
+  id: UrlId;
   alias: string | null;
   long_url: string | null;
   status: string | null;
@@ -72,10 +72,10 @@ export function listUrls(params: ListUrlsParams = {}): Promise<UrlListResult> {
   });
 }
 
-export function updateUrlStatus(urlId: string, status: "ACTIVE" | "INACTIVE") {
+export function updateUrlStatus(urlId: UrlId, status: "ACTIVE" | "INACTIVE") {
   return withSpoo((spoo) => spoo.links.setStatus(urlId, status));
 }
 
-export function deleteUrl(urlId: string) {
+export function deleteUrl(urlId: UrlId) {
   return withSpoo((spoo) => spoo.links.delete(urlId));
 }
