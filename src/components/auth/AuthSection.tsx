@@ -76,11 +76,11 @@ function WebLoginForm() {
     if (pending) return;
     setPending(true);
     setError("");
-    const state = generateState();
-    const { verifier, challenge } = await generatePkcePair();
-    await deviceAuthStateStorage.setValue(state);
-    await deviceAuthVerifierStorage.setValue(verifier);
     try {
+      const state = generateState();
+      const { verifier, challenge } = await generatePkcePair();
+      await deviceAuthStateStorage.setValue(state);
+      await deviceAuthVerifierStorage.setValue(verifier);
       // No redirectUri: the app's registered default (the hosted callback
       // page our content script watches) applies.
       const url = makeSpoo().oauth.authorizationUrl({

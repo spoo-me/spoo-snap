@@ -1,10 +1,10 @@
-import { AuthenticationError, SessionExpiredError, type Spoo, type TokenProvider } from "spoo.me";
+import { decodeJwtPayload, SessionExpiredError, type Spoo, type TokenProvider } from "spoo.me";
 import { gradientQrUrl } from "@/api/qr";
 import { API_BASE_URL, HISTORY_MAX_ITEMS, QR_BRAND } from "@/lib/constants";
 import type { ExtensionMessage } from "@/lib/messaging";
 import { runMigration } from "@/lib/migration";
 import { showToastNotification } from "@/lib/notification";
-import { makeSpoo } from "@/lib/spoo";
+import { isStaleSession401, makeSpoo } from "@/lib/spoo";
 import {
   accessTokenStorage,
   apiKeyStorage,
@@ -38,25 +38,14 @@ function getAnonSpoo(): Spoo {
   return anonClient;
 }
 
-/** Read the exp claim (as epoch ms) of a JWT without verifying it. */
-function readJwtExpMs(token: string): number | undefined {
-  const part = token.split(".")[1];
-  if (!part) return undefined;
-  try {
-    const payload = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")));
-    return typeof payload.exp === "number" ? payload.exp * 1000 : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * (Re)schedule the refresh alarm from the access token's actual lifetime
  * instead of assuming a fixed TTL. Minimum 1 minute; when the exp claim is
  * unreadable, fall back to a conservative 10 minutes.
  */
 async function scheduleRefreshAlarm(accessToken: string): Promise<void> {
-  const expMs = readJwtExpMs(accessToken);
+  const exp = decodeJwtPayload(accessToken)?.exp;
+  const expMs = typeof exp === "number" ? exp * 1000 : undefined;
   const periodInMinutes =
     expMs !== undefined ? Math.max(1, (expMs - Date.now() - REFRESH_BUFFER_MS) / 60_000) : 10;
   browser.alarms.create(REFRESH_ALARM, { periodInMinutes });
@@ -150,7 +139,7 @@ async function bgCall<T>(fn: (spoo: Spoo) => Promise<T>): Promise<T> {
     return await fn(await getBgSpoo());
   } catch (err) {
     if (
-      err instanceof AuthenticationError &&
+      isStaleSession401(err) &&
       (await authModeStorage.getValue()) === "jwt" &&
       (await requestRefresh())
     ) {
@@ -158,6 +147,27 @@ async function bgCall<T>(fn: (spoo: Spoo) => Promise<T>): Promise<T> {
     }
     throw err;
   }
+}
+
+// ── Offline queue ────────────────────────────────────────────
+//
+// The queue gets its own alarm, armed whenever an item is queued and
+// cleared once the queue drains. It must not piggyback the refresh alarm
+// (anonymous and API-key users have none) and the worker-scope "online"
+// event is not reliable in service workers, so an alarm is the only
+// trigger that's guaranteed to fire for every auth mode.
+
+const QUEUE_ALARM = "drain-shorten-queue";
+
+function armQueueAlarm(): void {
+  browser.alarms.create(QUEUE_ALARM, { periodInMinutes: 1 });
+}
+
+async function drainQueueIfOnline(): Promise<void> {
+  if (!navigator.onLine) return;
+  await processOfflineQueue();
+  const queue = await shortenQueueStorage.getValue();
+  if (queue.length === 0) await browser.alarms.clear(QUEUE_ALARM);
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -239,6 +249,7 @@ async function processUrl(url: string, tabId?: number): Promise<void> {
       const queue = await shortenQueueStorage.getValue();
       queue.push({ url: normalized, timestamp: Date.now() });
       await shortenQueueStorage.setValue(queue);
+      armQueueAlarm();
       return;
     }
     console.error("Failed to shorten URL:", e);
@@ -287,6 +298,12 @@ export default defineBackground(() => {
   // cached session provider so it can't refresh with stale tokens.
   authModeStorage.watch(() => {
     session = null;
+  });
+
+  // Re-arm the queue drain on worker start in case items were left over
+  // (e.g. the alarm was lost to an extension update or browser restart).
+  shortenQueueStorage.getValue().then((queue) => {
+    if (queue.length > 0) armQueueAlarm();
   });
 
   // ── Install / Update ─────────────────────────────────────
@@ -388,10 +405,14 @@ export default defineBackground(() => {
     }
   });
 
-  // ── Alarms (Token Refresh) ───────────────────────────────
+  // ── Alarms (Token Refresh + Queue Drain) ─────────────────
   browser.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name === QUEUE_ALARM) {
+      await drainQueueIfOnline();
+      return;
+    }
+
     if (alarm.name === REFRESH_ALARM) {
-      await processOfflineQueue();
       const mode = await authModeStorage.getValue();
       if (mode === "jwt") {
         // A revoked grant or expired refresh token clears the session inside
@@ -405,8 +426,10 @@ export default defineBackground(() => {
   });
 
   // ── Online/Offline ───────────────────────────────────────
+  // Opportunistic: not reliable in service workers, the queue alarm is the
+  // guaranteed trigger.
   self.addEventListener("online", () => {
-    processOfflineQueue();
+    drainQueueIfOnline();
   });
 
   console.log("spoo.me background service worker started");

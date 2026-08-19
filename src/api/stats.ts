@@ -72,8 +72,15 @@ export async function getUrlStats(shortCode: string, params: StatsParams = {}): 
   try {
     // The public endpoint returns an {generation, link, stats} envelope;
     // the inner stats object is the same wire shape as the authed
-    // endpoints, so we unwrap it here.
-    const envelope = await withSpoo((spoo) => spoo.public.stats(shortCode));
+    // endpoints, so we unwrap it here. It only takes a time window, so the
+    // grouping/metric params don't apply, but the window must carry over.
+    const envelope = await withSpoo((spoo) =>
+      spoo.public.stats(shortCode, {
+        ...(params.startDate !== undefined ? { startDate: params.startDate } : {}),
+        ...(params.endDate !== undefined ? { endDate: params.endDate } : {}),
+        ...(params.timezone !== undefined ? { timezone: params.timezone } : {}),
+      }),
+    );
     return envelope.stats as unknown as StatsData;
   } catch (e) {
     if (e instanceof AuthenticationError) {

@@ -4,6 +4,7 @@ import {
   AuthenticationError,
   ForbiddenError,
   RateLimitError,
+  SessionExpiredError,
 } from "spoo.me";
 
 /** Thrown by the offline gate before a request is even attempted. */
@@ -33,7 +34,15 @@ export function userMessage(err: unknown): string {
     return "You don't have permission to do that.";
   }
   if (err instanceof APIError) {
+    // http_<status> codes mean the body wasn't the API's JSON error shape
+    // (proxy or edge-composed responses) — nothing in it is user copy.
+    if (/^http_\d+$/.test(err.code)) {
+      return "Something went wrong on the server. Please try again.";
+    }
     return err.body.error;
+  }
+  if (err instanceof SessionExpiredError) {
+    return "Your session has expired. Please sign in again.";
   }
   if (err instanceof APIConnectionError) {
     return "Network error. Check your connection.";

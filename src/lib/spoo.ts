@@ -75,6 +75,15 @@ export async function getSpoo(): Promise<Spoo> {
 /** 401 codes a token refresh cannot fix (password-gated public stats). */
 const NON_SESSION_401 = new Set(["password_required", "invalid_password"]);
 
+/**
+ * True when a 401 means the caller's access token is stale, i.e. a token
+ * refresh can fix it. The single policy for every refresh-and-retry path
+ * (withSpoo here, bgCall in the background service worker).
+ */
+export function isStaleSession401(err: unknown): err is AuthenticationError {
+  return err instanceof AuthenticationError && !NON_SESSION_401.has(err.code);
+}
+
 async function requestBackgroundRefresh(): Promise<boolean> {
   try {
     const res = await sendMessage<{ refreshed?: boolean }>({ type: "refresh-token" });
@@ -94,8 +103,7 @@ export async function withSpoo<T>(fn: (spoo: Spoo) => Promise<T>): Promise<T> {
     return await fn(await getSpoo());
   } catch (err) {
     if (
-      err instanceof AuthenticationError &&
-      !NON_SESSION_401.has(err.code) &&
+      isStaleSession401(err) &&
       (await authModeStorage.getValue()) === "jwt" &&
       (await requestBackgroundRefresh())
     ) {
